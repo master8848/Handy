@@ -10,10 +10,16 @@ egui-shadcn = { path = "../egui-shadcn" }
 eframe = { version = "0.35", default-features = false, features = ["glow", "default_fonts", "wayland", "x11"] }
 egui = "0.35"
 egui_spellcheck = "0.35"
-rdev = "0.5"
 env_logger = "0.11"
 log = "0.4"
 anyhow = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 rfd = "0.15"
+
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+rdev = "0.5"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+core-foundation = "0.9.4"
+core-graphics = "0.23.2"
