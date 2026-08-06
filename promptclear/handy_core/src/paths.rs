@@ -18,6 +18,14 @@ pub fn default_models_dir() -> PathBuf {
     default_data_dir().join("models")
 }
 
+/// Legacy Handy app models directory (`com.pais.handy/models` under the
+/// platform data dir: `~/Library/Application Support` on macOS,
+/// `~/.local/share` on Linux, `%APPDATA%\Roaming` on Windows). PromptClear
+/// scans it so models the old app downloaded show up without copying.
+pub fn handy_models_dir() -> Option<PathBuf> {
+    dirs::data_dir().map(|d| d.join("com.pais.handy").join("models"))
+}
+
 pub fn default_settings_path() -> PathBuf {
     default_data_dir().join("settings.json")
 }

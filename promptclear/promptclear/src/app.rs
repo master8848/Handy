@@ -56,6 +56,16 @@ pub struct PromptClearApp {
     /// Mirrors "a recording session is active" for the event sink (which must
     /// not wake the UI for mic-level events while idle) and gates level bars.
     pub(crate) recording_flag: Arc<AtomicBool>,
+    /// Set after the spellcheck editor panicked once; overrides the
+    /// `spellcheck_enabled` setting for the rest of the session so the crash
+    /// cannot repeat every frame (the poisoned worker mutex would otherwise
+    /// kill the app on the next keystroke).
+    pub(crate) spellcheck_soft_disabled: bool,
+    /// One-time status message (e.g. "spell check disabled after a crash").
+    pub(crate) user_notice: Option<String>,
+    /// When the Model tab last triggered a local-model rescan (cheap guard so
+    /// repeatedly opening the tab doesn't re-walk the disk every frame).
+    pub(crate) last_local_scan: Option<Instant>,
 }
 
 impl PromptClearApp {
@@ -91,6 +101,9 @@ impl PromptClearApp {
             transcribe_pending: false,
             discard_pending: false,
             recording_flag,
+            spellcheck_soft_disabled: false,
+            user_notice: None,
+            last_local_scan: None,
         }
     }
 
@@ -173,15 +186,26 @@ impl PromptClearApp {
                     // returns post-processed text (filler/stutter removal,
                     // custom words), so replace exactly what was appended.
                     let committed = std::mem::take(&mut self.stream_committed);
-                    if !committed.is_empty() && self.text.ends_with(&committed) {
-                        self.text.truncate(self.text.len() - committed.len());
-                        self.text.push_str(&text);
+                    if !committed.is_empty()
+                        && crate::text::truncate_suffix(&mut self.text, &committed)
+                    {
+                        if text.starts_with(&committed) {
+                            // Finalize kept the committed prefix — append the
+                            // rewritten tail. `str::get` never panics even if
+                            // the boundary is invalid.
+                            crate::text::append_continuation(&mut self.text, &text, &committed);
+                        } else {
+                            // Engine rewrote the beginning; replace wholesale.
+                            self.text.push_str(&text);
+                        }
                     } else if !committed.is_empty()
                         && text.starts_with(&committed)
                         && text.len() > committed.len()
                     {
-                        // Append-only session; finalize added a tail.
-                        self.text.push_str(&text[committed.len()..]);
+                        // Append-only session; finalize added a tail. The
+                        // prefix guard guarantees a char boundary, but
+                        // `str::get` makes it panic-proof regardless.
+                        crate::text::append_continuation(&mut self.text, &text, &committed);
                     } else if !self.text.is_empty() && !text.is_empty() {
                         self.text.push('\n');
                         self.text.push_str(&text);
@@ -327,10 +351,11 @@ impl App for PromptClearApp {
         self.process_events();
         self.process_hotkeys();
         self.input_shortcuts(ctx);
-        if self.send_confirmation.is_some()
+        if (self.send_confirmation.is_some() || self.user_notice.is_some())
             && ctx.input(|i| i.events.iter().any(|e| matches!(e, egui::Event::Text(_))))
         {
             self.send_confirmation = None;
+            self.user_notice = None;
         }
         self.sync_status();
     }

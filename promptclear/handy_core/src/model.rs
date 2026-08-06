@@ -35,6 +35,11 @@ pub enum EngineType {
     GigaAM,
     Canary,
     Cohere,
+    /// Apple's Speech framework (macOS only): system-provided recognition with
+    /// no model download — the engine behind the OS's built-in dictation. Only
+    /// seeded into the registry on macOS; selecting it elsewhere is an error.
+    /// The framework may use the network for some locales.
+    OsSpeech,
 }
 
 /// Where a model comes from and how Handy obtains it — the routing discriminant
@@ -58,6 +63,10 @@ pub enum ModelSource {
     /// (PromptClear extension). The path lives in `AppSettings::custom_model_path`.
     #[serde(rename = "local-path")]
     LocalPath,
+    /// System-provided (Apple Speech framework on macOS): nothing to download,
+    /// nothing on disk. The registry entry exists so the UI can offer it; the
+    /// engine handles everything itself.
+    OsSpeech,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -85,6 +94,10 @@ pub struct ModelInfo {
 }
 
 const CHINESE_LANGUAGE_CODE: &str = "zh";
+
+/// Registry id of the seeded OS speech entry (`EngineType::OsSpeech`). Seeded
+/// only on macOS (see [`ModelManager::seed_os_speech_entry`]).
+pub(crate) const OS_SPEECH_MODEL_ID: &str = "os-speech";
 
 fn recognition_language(language: &str) -> &str {
     match language {
@@ -1114,9 +1127,16 @@ impl ModelManager {
         // find. Additive — see `seed_catalog_models`.
         Self::seed_catalog_models(&mut available_models);
 
-        // Auto-discover custom transcribe-cpp models (.bin / .gguf) in the models directory
-        if let Err(e) = Self::discover_custom_transcribe_models(&models_dir, &mut available_models)
-        {
+        // Offer the system-provided OS speech engine (macOS only, no download).
+        #[cfg(target_os = "macos")]
+        Self::seed_os_speech_entry(&mut available_models);
+
+        // Auto-discover custom transcribe-cpp models (.bin / .gguf) in the
+        // models directory and the legacy Handy app's models directory.
+        if let Err(e) = Self::discover_custom_transcribe_models_in(
+            &Self::local_models_dirs(&models_dir),
+            &mut available_models,
+        ) {
             warn!("Failed to discover custom models: {}", e);
         }
 
@@ -1189,6 +1209,42 @@ impl ModelManager {
         info!("Seeded {} catalog model(s) into the registry", added);
     }
 
+    /// Seed the OS speech entry (`EngineType::OsSpeech`, Apple Speech framework)
+    /// so the model list offers a "transcribe via the OS" option with zero
+    /// download. macOS-only: the engine doesn't exist elsewhere and the entry
+    /// must not appear for Linux/Windows users. Additive like the catalog seed.
+    #[cfg(target_os = "macos")]
+    pub(crate) fn seed_os_speech_entry(available_models: &mut HashMap<String, ModelInfo>) {
+        use std::collections::hash_map::Entry;
+        if let Entry::Vacant(slot) = available_models.entry(OS_SPEECH_MODEL_ID.to_string()) {
+            slot.insert(ModelInfo {
+                id: OS_SPEECH_MODEL_ID.to_string(),
+                name: "Apple OS Transcription".to_string(),
+                description: "Transcribes with macOS's built-in speech recognition. \
+                              No model download or GPU needed; follows the system language."
+                    .to_string(),
+                filename: String::new(),
+                source: ModelSource::OsSpeech,
+                size_mb: 0,
+                is_downloaded: true, // always ready — nothing to fetch
+                is_downloading: false,
+                partial_size: 0,
+                is_directory: false,
+                engine_type: EngineType::OsSpeech,
+                accuracy_score: 0.0, // Sentinel: UI hides score bars when both are 0
+                speed_score: 0.0,
+                supports_translation: false,
+                is_recommended: false,
+                supported_languages: Vec::new(),
+                supports_language_selection: false,
+                is_custom: false,
+                supports_streaming: false, // batch-only; UI must take the batch path
+                supports_language_detection: true,
+            });
+            info!("Seeded OS speech transcription entry into the registry");
+        }
+    }
+
     /// Claim the single rescan slot. Returns a guard that releases it on drop,
     /// or `None` if a rescan is already running (callers should just skip).
     fn try_start_rescan(&self) -> Option<RescanGuard> {
@@ -1199,6 +1255,12 @@ impl ModelManager {
                 flag: self.is_rescanning.clone(),
             })
         }
+    }
+
+    /// Whether a local-model rescan is currently running (for UI affordances
+    /// like a disabled "Scan local folders" button / "Scanning…" state).
+    pub fn is_rescanning(&self) -> bool {
+        self.is_rescanning.load(Ordering::SeqCst)
     }
 
     /// Re-run the local discovery scans (custom models dir + shared HF cache) so
@@ -1226,7 +1288,10 @@ impl ModelManager {
         // The discover_* helpers are purely additive (they skip ids already in
         // the map), so the snapshot ends up as {current} ∪ {newly-found}.
         let mut snapshot = self.available_models.lock().unwrap().clone();
-        if let Err(e) = Self::discover_custom_transcribe_models(&self.models_dir, &mut snapshot) {
+        if let Err(e) = Self::discover_custom_transcribe_models_in(
+            &Self::local_models_dirs(&self.models_dir),
+            &mut snapshot,
+        ) {
             warn!("Rescan: failed to discover custom models: {}", e);
         }
         Self::discover_hf_cache_models(&mut snapshot);
@@ -1373,6 +1438,13 @@ impl ModelManager {
         let mut vanished_alternates: Vec<String> = Vec::new();
 
         for model in models.values_mut() {
+            if matches!(model.source, ModelSource::OsSpeech) {
+                // System-provided engine: nothing on disk to check — always ready.
+                model.is_downloaded = true;
+                model.is_downloading = false;
+                model.partial_size = 0;
+                continue;
+            }
             if let ModelSource::LocalPath = &model.source {
                 // The file lives at the user-configured custom path; downloaded
                 // state mirrors its presence on disk.
@@ -1536,17 +1608,47 @@ impl ModelManager {
         Ok(())
     }
 
+    /// Directories scanned for dropped-in local models: PromptClear's own
+    /// models dir first, then the legacy Handy app's (under the platform data
+    /// dir). Deduplicated so a data-dir override pointing at the Handy dir
+    /// doesn't double-scan.
+    fn local_models_dirs(models_dir: &Path) -> Vec<PathBuf> {
+        Self::local_models_dirs_from(models_dir, crate::paths::handy_models_dir())
+    }
+
+    /// Pure variant of [`Self::local_models_dirs`] so the merge (and its
+    /// dedup) is unit-testable without touching the real filesystem.
+    fn local_models_dirs_from(models_dir: &Path, handy_dir: Option<PathBuf>) -> Vec<PathBuf> {
+        let mut dirs = vec![models_dir.to_path_buf()];
+        if let Some(handy_dir) = handy_dir {
+            if !dirs.contains(&handy_dir) {
+                dirs.push(handy_dir);
+            }
+        }
+        dirs
+    }
+
     /// Discover custom Whisper-family models in the models directory: legacy
     /// GGML `.bin` files and `.gguf` files (both load through transcribe-cpp).
-    /// Skips files that match predefined model filenames.
+    /// Skips files that match predefined model filenames. Single-directory
+    /// wrapper over [`Self::discover_custom_transcribe_models_in`], kept for
+    /// the unit tests (production paths scan `local_models_dirs`).
+    #[cfg(test)]
     fn discover_custom_transcribe_models(
         models_dir: &Path,
         available_models: &mut HashMap<String, ModelInfo>,
     ) -> Result<()> {
-        if !models_dir.exists() {
-            return Ok(());
-        }
+        Self::discover_custom_transcribe_models_in(&[models_dir.to_path_buf()], available_models)
+    }
 
+    /// Multi-directory variant of [`Self::discover_custom_transcribe_models`]:
+    /// scans every dir in `models_dirs` (existing, non-duplicate dirs only;
+    /// unreadable ones are skipped with a warning) and merges findings into
+    /// `available_models`.
+    fn discover_custom_transcribe_models_in(
+        models_dirs: &[PathBuf],
+        available_models: &mut HashMap<String, ModelInfo>,
+    ) -> Result<()> {
         // Collect filenames of predefined transcribe-cpp file-based models to skip
         let predefined_filenames: HashSet<String> = available_models
             .values()
@@ -1554,143 +1656,159 @@ impl ModelManager {
             .map(|m| m.filename.clone())
             .collect();
 
-        // Scan models directory for .bin / .gguf files
-        for entry in fs::read_dir(models_dir)? {
-            let entry = match entry {
-                Ok(e) => e,
+        let mut seen = HashSet::new();
+        for models_dir in models_dirs {
+            if !seen.insert(models_dir.clone()) || !models_dir.exists() {
+                continue;
+            }
+
+            // Scan models directory for .bin / .gguf files
+            let entries = match fs::read_dir(models_dir) {
+                Ok(entries) => entries,
                 Err(e) => {
-                    warn!("Failed to read directory entry: {}", e);
+                    warn!("Failed to read models directory {:?}: {}", models_dir, e);
                     continue;
                 }
             };
+            for entry in entries {
+                let entry = match entry {
+                    Ok(e) => e,
+                    Err(e) => {
+                        warn!("Failed to read directory entry: {}", e);
+                        continue;
+                    }
+                };
 
-            let path = entry.path();
+                let path = entry.path();
 
-            // Skip directories; the .bin / .gguf extension filter is below.
-            if !path.is_file() {
-                continue;
-            }
+                // Skip directories; the .bin / .gguf extension filter is below.
+                if !path.is_file() {
+                    continue;
+                }
 
-            let filename = match path.file_name().and_then(|s| s.to_str()) {
-                Some(name) => name.to_string(),
-                None => continue,
-            };
+                let filename = match path.file_name().and_then(|s| s.to_str()) {
+                    Some(name) => name.to_string(),
+                    None => continue,
+                };
 
-            // Skip hidden files
-            if filename.starts_with('.') {
-                continue;
-            }
+                // Skip hidden files
+                if filename.starts_with('.') {
+                    continue;
+                }
 
-            // Only process Whisper-family model files: legacy GGML `.bin` or
-            // GGUF `.gguf` (both load through transcribe-cpp). Anything else —
-            // including `.partial` downloads like "model.bin.partial" — is
-            // skipped, since it ends in neither extension. The model ID is the
-            // filename with its extension removed.
-            let (model_id, is_gguf) = if let Some(stem) = filename.strip_suffix(".bin") {
-                (stem.to_string(), false)
-            } else if let Some(stem) = filename.strip_suffix(".gguf") {
-                (stem.to_string(), true)
-            } else {
-                continue;
-            };
+                // Only process Whisper-family model files: legacy GGML `.bin` or
+                // GGUF `.gguf` (both load through transcribe-cpp). Anything else —
+                // including `.partial` downloads like "model.bin.partial" — is
+                // skipped, since it ends in neither extension. The model ID is the
+                // filename with its extension removed.
+                let (model_id, is_gguf) = if let Some(stem) = filename.strip_suffix(".bin") {
+                    (stem.to_string(), false)
+                } else if let Some(stem) = filename.strip_suffix(".gguf") {
+                    (stem.to_string(), true)
+                } else {
+                    continue;
+                };
 
-            // Skip predefined model files
-            if predefined_filenames.contains(&filename) {
-                continue;
-            }
+                // Skip predefined model files
+                if predefined_filenames.contains(&filename) {
+                    continue;
+                }
 
-            // A file matching ANY catalog-listed quant surfaces as that catalog
-            // model — full name/description/scores, quant-suffixed name for
-            // non-defaults — instead of as an anonymous custom entry. (Default
-            // quants never reach here: they're in `predefined_filenames`.)
-            if let Some((desc, quant_file)) = crate::catalog::file_in_catalog(&filename, None) {
-                let info = desc.to_model_info_for_file(
-                    quant_file,
-                    &DiskStatus {
-                        is_downloaded: true,
-                        ..Default::default()
+                // A file matching ANY catalog-listed quant surfaces as that catalog
+                // model — full name/description/scores, quant-suffixed name for
+                // non-defaults — instead of as an anonymous custom entry. (Default
+                // quants never reach here: they're in `predefined_filenames`.)
+                if let Some((desc, quant_file)) = crate::catalog::file_in_catalog(&filename, None) {
+                    let info = desc.to_model_info_for_file(
+                        quant_file,
+                        &DiskStatus {
+                            is_downloaded: true,
+                            ..Default::default()
+                        },
+                    );
+                    if !available_models.contains_key(&info.id) {
+                        info!(
+                            "Discovered catalog quant in models dir: {} ({})",
+                            info.id, filename
+                        );
+                        available_models.insert(info.id.clone(), info);
+                    }
+                    continue;
+                }
+
+                // Skip if model ID already exists (shouldn't happen, but be safe)
+                if available_models.contains_key(&model_id) {
+                    continue;
+                }
+
+                // Generate display name: replace - and _ with space, capitalize words
+                let fallback_display_name = model_id
+                    .replace(['-', '_'], " ")
+                    .split_whitespace()
+                    .map(|word| {
+                        let mut chars = word.chars();
+                        match chars.next() {
+                            None => String::new(),
+                            Some(first) => {
+                                first.to_uppercase().collect::<String>() + chars.as_str()
+                            }
+                        }
+                    })
+                    .collect::<Vec<_>>()
+                    .join(" ");
+
+                // Get file size in MB
+                let size_mb = match path.metadata() {
+                    Ok(meta) => meta.len() / (1024 * 1024),
+                    Err(e) => {
+                        warn!("Failed to get metadata for {}: {}", filename, e);
+                        0
+                    }
+                };
+
+                // Probe GGUF headers for advertised capabilities so a dropped-in
+                // model surfaces streaming / translation / languages just like a
+                // Handy-downloaded one. Legacy `.bin` files have no GGUF header, so
+                // they stay "unknown" until transcribe-cpp reconciles them at load.
+                let probe = if is_gguf {
+                    GgufHeaderProber.probe_file(&path)
+                } else {
+                    CapabilityProbe::default()
+                };
+                let caps = local_caps(&probe);
+                let display_name = probed_display_name(&probe).unwrap_or(fallback_display_name);
+
+                info!(
+                    "Discovered custom transcribe-cpp model: {} ({}, {} MB, streaming={})",
+                    model_id, filename, size_mb, caps.supports_streaming
+                );
+
+                available_models.insert(
+                    model_id.clone(),
+                    ModelInfo {
+                        id: model_id,
+                        name: display_name,
+                        description: "Not officially supported".to_string(),
+                        filename,
+                        source: ModelSource::Local, // already on disk; nothing to download
+                        size_mb,
+                        is_downloaded: true, // Already present on disk
+                        is_downloading: false,
+                        partial_size: 0,
+                        is_directory: false,
+                        engine_type: EngineType::TranscribeCpp,
+                        accuracy_score: 0.0, // Sentinel: UI hides score bars when both are 0
+                        speed_score: 0.0,
+                        supports_translation: caps.supports_translation,
+                        is_recommended: false,
+                        supported_languages: caps.supported_languages,
+                        supports_language_selection: caps.supports_language_selection,
+                        is_custom: true,
+                        supports_streaming: caps.supports_streaming,
+                        supports_language_detection: caps.supports_language_detection,
                     },
                 );
-                if !available_models.contains_key(&info.id) {
-                    info!(
-                        "Discovered catalog quant in models dir: {} ({})",
-                        info.id, filename
-                    );
-                    available_models.insert(info.id.clone(), info);
-                }
-                continue;
             }
-
-            // Skip if model ID already exists (shouldn't happen, but be safe)
-            if available_models.contains_key(&model_id) {
-                continue;
-            }
-
-            // Generate display name: replace - and _ with space, capitalize words
-            let fallback_display_name = model_id
-                .replace(['-', '_'], " ")
-                .split_whitespace()
-                .map(|word| {
-                    let mut chars = word.chars();
-                    match chars.next() {
-                        None => String::new(),
-                        Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
-                    }
-                })
-                .collect::<Vec<_>>()
-                .join(" ");
-
-            // Get file size in MB
-            let size_mb = match path.metadata() {
-                Ok(meta) => meta.len() / (1024 * 1024),
-                Err(e) => {
-                    warn!("Failed to get metadata for {}: {}", filename, e);
-                    0
-                }
-            };
-
-            // Probe GGUF headers for advertised capabilities so a dropped-in
-            // model surfaces streaming / translation / languages just like a
-            // Handy-downloaded one. Legacy `.bin` files have no GGUF header, so
-            // they stay "unknown" until transcribe-cpp reconciles them at load.
-            let probe = if is_gguf {
-                GgufHeaderProber.probe_file(&path)
-            } else {
-                CapabilityProbe::default()
-            };
-            let caps = local_caps(&probe);
-            let display_name = probed_display_name(&probe).unwrap_or(fallback_display_name);
-
-            info!(
-                "Discovered custom transcribe-cpp model: {} ({}, {} MB, streaming={})",
-                model_id, filename, size_mb, caps.supports_streaming
-            );
-
-            available_models.insert(
-                model_id.clone(),
-                ModelInfo {
-                    id: model_id,
-                    name: display_name,
-                    description: "Not officially supported".to_string(),
-                    filename,
-                    source: ModelSource::Local, // already on disk; nothing to download
-                    size_mb,
-                    is_downloaded: true, // Already present on disk
-                    is_downloading: false,
-                    partial_size: 0,
-                    is_directory: false,
-                    engine_type: EngineType::TranscribeCpp,
-                    accuracy_score: 0.0, // Sentinel: UI hides score bars when both are 0
-                    speed_score: 0.0,
-                    supports_translation: caps.supports_translation,
-                    is_recommended: false,
-                    supported_languages: caps.supported_languages,
-                    supports_language_selection: caps.supports_language_selection,
-                    is_custom: true,
-                    supports_streaming: caps.supports_streaming,
-                    supports_language_detection: caps.supports_language_detection,
-                },
-            );
         }
 
         Ok(())
@@ -2179,6 +2297,11 @@ impl ModelManager {
             ModelSource::Local | ModelSource::LocalPath => {
                 return Err(anyhow::anyhow!("No download source for model"));
             }
+            ModelSource::OsSpeech => {
+                return Err(anyhow::anyhow!(
+                    "OS speech transcription is built into the system and needs no model download"
+                ));
+            }
         };
         let model_path = self.models_dir.join(&model_info.filename);
         let partial_path = self
@@ -2374,6 +2497,12 @@ impl ModelManager {
 
         debug!("ModelManager: Found model info: {:?}", model_info);
 
+        if matches!(model_info.source, ModelSource::OsSpeech) {
+            return Err(anyhow::anyhow!(
+                "The OS speech transcription engine is system-provided and cannot be deleted"
+            ));
+        }
+
         if let ModelSource::HuggingFace { repo_id, revision } = &model_info.source {
             let is_alternate_quant =
                 Self::is_catalog_alternate_quant(repo_id, &model_info.filename);
@@ -2515,6 +2644,15 @@ impl ModelManager {
             return Err(anyhow::anyhow!(
                 "Custom model file not found: {}",
                 custom_path
+            ));
+        }
+
+        if matches!(model_info.source, ModelSource::OsSpeech) {
+            // There is no file: the engine is the operating system itself.
+            // Callers must handle `EngineType::OsSpeech` without a path.
+            return Err(anyhow::anyhow!(
+                "OS speech transcription needs no model file: '{}' is a system-provided engine",
+                model_id
             ));
         }
 
@@ -2892,6 +3030,62 @@ mod tests {
         let result = ModelManager::discover_custom_transcribe_models(&models_dir, &mut models);
         assert!(result.is_ok());
         assert_eq!(models.len(), count_before);
+    }
+
+    #[test]
+    fn test_discover_custom_models_in_multiple_dirs() {
+        let promptclear_dir = TempDir::new().unwrap();
+        let handy_dir = TempDir::new().unwrap();
+
+        File::create(promptclear_dir.path().join("my-custom-model.bin")).unwrap();
+        File::create(handy_dir.path().join("handy-legacy-model.gguf")).unwrap();
+
+        let mut models = HashMap::new();
+        ModelManager::discover_custom_transcribe_models_in(
+            &[
+                promptclear_dir.path().to_path_buf(),
+                handy_dir.path().to_path_buf(),
+            ],
+            &mut models,
+        )
+        .unwrap();
+
+        assert!(models.contains_key("my-custom-model"));
+        assert!(models.contains_key("handy-legacy-model"));
+    }
+
+    #[test]
+    fn test_discover_custom_models_skips_duplicate_dirs() {
+        let dir = TempDir::new().unwrap();
+        File::create(dir.path().join("once.bin")).unwrap();
+
+        let mut models = HashMap::new();
+        ModelManager::discover_custom_transcribe_models_in(
+            &[dir.path().to_path_buf(), dir.path().to_path_buf()],
+            &mut models,
+        )
+        .unwrap();
+
+        // The duplicate dir must not re-insert; "once" appears exactly once.
+        assert_eq!(models.len(), 1);
+        assert!(models.contains_key("once"));
+    }
+
+    #[test]
+    fn test_local_models_dirs_merges_handy_dir() {
+        let models_dir = PathBuf::from("/data/PromptClear/models");
+        let handy_dir = PathBuf::from("/data/com.pais.handy/models");
+
+        let dirs = ModelManager::local_models_dirs_from(&models_dir, Some(handy_dir.clone()));
+        assert_eq!(dirs, vec![models_dir.clone(), handy_dir.clone()]);
+
+        // No Handy dir (None) → only PromptClear's dir.
+        let dirs = ModelManager::local_models_dirs_from(&models_dir, None);
+        assert_eq!(dirs, vec![models_dir.clone()]);
+
+        // Overlap (data-dir override pointing at the Handy dir) → deduped.
+        let dirs = ModelManager::local_models_dirs_from(&handy_dir, Some(handy_dir.clone()));
+        assert_eq!(dirs, vec![handy_dir]);
     }
 
     #[test]

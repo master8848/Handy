@@ -208,4 +208,17 @@ impl VoicePipeline {
             });
         }
     }
+
+    /// Re-run the local discovery scans (PromptClear/Handy model dirs + shared
+    /// HuggingFace cache) on a background thread so newly placed model files
+    /// show up without a restart. Completion is surfaced via
+    /// `CoreEvent::ModelsUpdated` → `PromptClearApp::models` refresh.
+    pub fn rescan_local_models(&self) {
+        let model_mgr = self.model_mgr.clone();
+        std::thread::spawn(move || {
+            if let Err(error) = model_mgr.rescan_local_models() {
+                log::error!("local model rescan failed: {error}");
+            }
+        });
+    }
 }

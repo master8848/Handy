@@ -9,10 +9,13 @@ impl egui::Widget for super::textarea::Textarea<'_> {
         let width = self
             .desired_width
             .unwrap_or(ui.available_width().min(240.0));
+        // Never let the field collapse to zero height: a zero-size inner rect
+        // would give the inner TextEdit a degenerate layout.
+        let min_height = self.min_height.max(16.0);
         let corner_radius = theme.radius;
         let cr = egui::CornerRadius::same(corner_radius.round() as u8);
 
-        let desired = egui::vec2(width, self.min_height);
+        let desired = egui::vec2(width, min_height);
         let (outer_rect, outer_response) = ui.allocate_exact_size(desired, egui::Sense::hover());
         let outer_hovered = outer_response.hovered() || ui.rect_contains_pointer(outer_rect);
 

@@ -174,6 +174,9 @@ enum LoadedEngine {
     GigaAM(GigaAMModel),
     Canary(CanaryModel),
     Cohere(CohereModel),
+    /// Apple's Speech framework on macOS: system-provided recognition with no
+    /// model file. Loaded state simply means authorization succeeded.
+    OsSpeech,
 }
 
 /// RAII guard that clears the `is_loading` flag and notifies waiters on drop.
@@ -490,7 +493,14 @@ impl TranscriptionManager {
             return Err(anyhow::anyhow!(error_msg));
         }
 
-        let model_path = self.model_manager.get_model_path(model_id)?;
+        // OS speech needs no model file: the `EngineType::OsSpeech` load arm
+        // below is auth-only and never reads this. Resolve a real path for
+        // every file-based engine.
+        let model_path = if matches!(model_info.engine_type, EngineType::OsSpeech) {
+            std::path::PathBuf::new()
+        } else {
+            self.model_manager.get_model_path(model_id)?
+        };
 
         // Drop the current engine BEFORE building the new one so transcribe-cpp
         // frees the previous native context first — avoids holding two models at
@@ -649,6 +659,18 @@ impl TranscriptionManager {
                 })?;
                 LoadedEngine::Cohere(engine)
             }
+            EngineType::OsSpeech => {
+                // No model file: loading = (re)verifying the OS speech
+                // permission so failures surface as a clean error event. The
+                // stub on non-macOS reports the platform limitation.
+                if let Err(e) = crate::os_speech::request_authorization() {
+                    let error_msg = format!("Failed to initialize OS speech recognition: {}", e);
+                    emit_loading_failed(&error_msg);
+                    return Err(anyhow::anyhow!(error_msg));
+                }
+                info!("OS speech recognition authorized (model '{}')", model_id);
+                LoadedEngine::OsSpeech
+            }
         };
 
         // Update the current engine and model ID
@@ -726,6 +748,7 @@ impl TranscriptionManager {
             Some(LoadedEngine::TranscribeCpp(session)) => {
                 Some(session.model().backend().to_string())
             }
+            Some(LoadedEngine::OsSpeech) => Some("os-speech".to_string()),
             Some(_) => Some("onnx".to_string()),
             None => None,
         }
@@ -1320,6 +1343,15 @@ impl TranscriptionManager {
                             .transcribe(&audio, &options)
                             .map(|r| r.text)
                             .map_err(|e| anyhow::anyhow!("Cohere transcription failed: {}", e))
+                    }
+                    LoadedEngine::OsSpeech => {
+                        // Write the PCM to a temp WAV and hand it to the OS
+                        // recognizer (SFSpeechURLRecognitionRequest on macOS).
+                        // Post-processing (custom words, filler filtering)
+                        // applies below, shared with every other engine.
+                        let tmp_dir = std::env::temp_dir();
+                        crate::os_speech::transcribe_pcm(&audio, 16_000, &tmp_dir)
+                            .map_err(|e| anyhow::anyhow!("OS speech transcription failed: {}", e))
                     }
                 }
             }));

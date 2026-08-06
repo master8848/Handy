@@ -14,6 +14,7 @@ pub mod event;
 pub mod gguf_meta;
 pub mod model;
 pub mod model_capabilities;
+pub mod os_speech;
 pub mod paths;
 pub mod settings;
 pub mod text;
