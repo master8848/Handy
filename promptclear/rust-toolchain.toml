@@ -1,0 +1,4 @@
+# harper-core (grammar engine) needs a recent stable rustc — it fails on 1.92.0
+# with an HRTB inference regression. Keep everyone on latest stable.
+[toolchain]
+channel = "stable"

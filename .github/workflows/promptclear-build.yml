@@ -1,0 +1,64 @@
+# Builds the promptclear/ workspace only (handy_core + promptclear app crate).
+# The Handy app itself is built by the other workflows in this directory —
+# don't extend this one to cover src-tauri.
+name: "PromptClear Build"
+
+on:
+  push:
+    paths:
+      - 'promptclear/**'
+  pull_request:
+    paths:
+      - 'promptclear/**'
+
+jobs:
+  build:
+    name: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # macos-14 runners are arm64; ubuntu/windows runners are x64.
+        os: [macos-14, ubuntu-22.04, windows-2022]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: ./promptclear
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: 'promptclear'
+
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev
+
+      - name: Build (release)
+        shell: bash
+        run: cargo build --release
+
+      - name: Test
+        shell: bash
+        run: cargo test
+
+      - name: Test handy_core functional suite
+        shell: bash
+        run: cargo test -p handy_core --test functional
+
+      - name: Check vendored egui-shadcn crate
+        shell: bash
+        # egui-shadcn is a workspace member under promptclear/egui-shadcn, so
+        # the 'promptclear/**' path filter above already triggers this job.
+        run: cargo check -p egui-shadcn
+
+      - name: Clippy (warnings only)
+        shell: bash
+        run: cargo clippy --all-targets
