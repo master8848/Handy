@@ -1402,7 +1402,7 @@ reliable_paste?: boolean; typing_tool?: TypingTool; external_script_path?: strin
  * not gated on this — that follows model capability. Migrated from the old
  * `overlay_position` (position `none` → style `None`).
  */
-overlay_style?: OverlayStyle; prompt_library_enabled?: boolean; server_mode_enabled?: boolean; server_port?: number; server_bind?: string; server_auth_token?: string | null }
+overlay_style?: OverlayStyle; overlay_native_enabled?: boolean; prompt_library_enabled?: boolean; server_mode_enabled?: boolean; server_port?: number; server_bind?: string; server_auth_token?: string | null }
 export type AudioDevice = { index: string; name: string; is_default: boolean }
 export type AutoSubmitKey = "enter" | "ctrl_enter" | "cmd_enter"
 export type AvailableAccelerators = { transcribe: string[]; ort: string[]; gpu_devices: GpuDeviceOption[] }

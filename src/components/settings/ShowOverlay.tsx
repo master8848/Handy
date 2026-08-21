@@ -85,21 +85,18 @@ export const ShowOverlay: React.FC<ShowOverlayProps> = React.memo(
           </SettingContainer>
         )}
         {selectedStyle !== "none" && (
-          <SettingContainer
-            title={t("settings.advanced.overlay.native.title", "Native overlay")}
+          <ToggleSwitch
+            checked={(getSetting("overlay_native_enabled") as boolean) ?? true}
+            onChange={(v: boolean) => updateSetting("overlay_native_enabled", v)}
+            isUpdating={isUpdating("overlay_native_enabled")}
+            label={t("settings.advanced.overlay.native.title", "Native overlay")}
             description={t(
               "settings.advanced.overlay.native.description",
               "Use NSPanel (macOS) / HWND (Windows) instead of WebView. Saves 30–80 MB. Requires restart. Linux keeps WebView.",
             )}
             descriptionMode={descriptionMode}
             grouped={grouped}
-          >
-            <ToggleSwitch
-              checked={(getSetting("overlay_native_enabled") as boolean) ?? true}
-              onCheckedChange={(v) => updateSetting("overlay_native_enabled", v)}
-              disabled={isUpdating("overlay_native_enabled")}
-            />
-          </SettingContainer>
+          />
         )}
       </>
     );
