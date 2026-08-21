@@ -18,16 +18,13 @@ import type {
 } from "@/bindings";
 import i18n, { syncLanguageFromSettings } from "@/i18n";
 import { getLanguageDirection } from "@/lib/utils/rtl";
+import { SPELL_CHECK_DEBOUNCE_MS } from "@/lib/constants/debounce";
 
 type OverlayState = "recording" | "streaming" | "transcribing" | "processing";
 
 // Number of reactive bars in the waveform (the simple, smoothed style shared by
 // every overlay form). Mic levels arrive as 16 FFT buckets; we take the first N.
 const WAVE_BARS = 9;
-
-// Quiet period before the offline spell-checker runs on the committed text —
-// long enough to avoid firing per-chunk mid-speech, short enough to keep up.
-const SPELL_CHECK_DEBOUNCE_MS = 300;
 
 const RecordingOverlay: React.FC = () => {
   const { t } = useTranslation();
