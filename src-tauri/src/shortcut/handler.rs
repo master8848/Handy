@@ -5,7 +5,7 @@
 
 use log::warn;
 use std::sync::Arc;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 
 use crate::actions::ACTION_MAP;
 use crate::managers::audio::AudioRecordingManager;
@@ -33,6 +33,23 @@ pub fn handle_shortcut_event(
     is_pressed: bool,
 ) {
     let settings = get_settings(app);
+
+    // Prompt palette binding: open fuzzy finder
+    if binding_id == "prompt_palette" {
+        if is_pressed {
+            let _ = app.emit("prompt-library:open-palette", ());
+            if let Some(win) = app.get_webview_window("main") {
+                let _ = win.unminimize();
+                let _ = win.show();
+                let _ = win.set_focus();
+                #[cfg(target_os = "macos")]
+                {
+                    let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
+                }
+            }
+        }
+        return;
+    }
 
     // Transcribe bindings are handled by the coordinator.
     if is_transcribe_binding(binding_id) {

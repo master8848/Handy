@@ -531,13 +531,31 @@ pub struct AppSettings {
     /// `overlay_position` (position `none` → style `None`).
     #[serde(default = "default_overlay_style")]
     pub overlay_style: OverlayStyle,
+    /// When true, use a native overlay (NSPanel on macOS, HWND layered window on
+    /// Windows) instead of a WebView. Linux stays WebView even when true (gated
+    /// at runtime). Opt-in for v1; TODO Phase 5 flip to default true on
+    /// macOS/Windows once native parity is verified.
+    #[serde(default = "default_overlay_native_enabled")]
+    pub overlay_native_enabled: bool,
+    #[serde(default = "default_prompt_library_enabled")]
+    pub prompt_library_enabled: bool,
+    /// When enabled, Handy skips the main `WebviewWindow` and serves the UI
+    /// via a loopback HTTP server instead (Phase 2 server mode).
+    #[serde(default = "default_server_mode_enabled")]
+    pub server_mode_enabled: bool,
+    #[serde(default = "default_server_port")]
+    pub server_port: u16,
+    #[serde(default = "default_server_bind")]
+    pub server_bind: String,
+    #[serde(default)]
+    pub server_auth_token: Option<String>,
 }
 
 fn default_model() -> String {
     "".to_string()
 }
 
-const CURRENT_SETTINGS_SCHEMA_VERSION: u32 = 1;
+const CURRENT_SETTINGS_SCHEMA_VERSION: u32 = 2;
 
 fn default_settings_schema_version() -> u32 {
     CURRENT_SETTINGS_SCHEMA_VERSION
@@ -594,12 +612,43 @@ fn default_overlay_style() -> OverlayStyle {
     return OverlayStyle::Live;
 }
 
+fn default_overlay_native_enabled() -> bool {
+    #[cfg(target_os = "linux")]
+    return false;
+    #[cfg(not(target_os = "linux"))]
+    return true;
+}
+
 fn default_vad_enabled() -> bool {
     true
 }
 
 fn default_spell_check_enabled() -> bool {
     true
+}
+
+fn default_prompt_library_enabled() -> bool {
+    false
+}
+
+fn default_server_mode_enabled() -> bool {
+    false
+}
+
+fn default_server_port() -> u16 {
+    17373
+}
+
+fn default_server_bind() -> String {
+    "127.0.0.1".to_string()
+}
+
+pub fn generate_server_auth_token() -> String {
+    use base64::Engine as _;
+    use rand::RngCore;
+    let mut bytes = [0u8; 32];
+    rand::thread_rng().fill_bytes(&mut bytes);
+    base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(&bytes)
 }
 
 fn default_debug_mode() -> bool {
@@ -910,6 +959,21 @@ pub fn get_default_settings() -> AppSettings {
             current_binding: "escape".to_string(),
         },
     );
+    #[cfg(target_os = "macos")]
+    let prompt_palette_default = "option+shift+p";
+    #[cfg(not(target_os = "macos"))]
+    let prompt_palette_default = "ctrl+shift+p";
+    bindings.insert(
+        "prompt_palette".to_string(),
+        ShortcutBinding {
+            id: "prompt_palette".to_string(),
+            name: "Prompt Palette".to_string(),
+            description: "Open the prompt library palette to search and insert prompts."
+                .to_string(),
+            default_binding: prompt_palette_default.to_string(),
+            current_binding: prompt_palette_default.to_string(),
+        },
+    );
 
     AppSettings {
         settings_schema_version: default_settings_schema_version(),
@@ -975,6 +1039,12 @@ pub fn get_default_settings() -> AppSettings {
         vad_enabled: default_vad_enabled(),
         spell_check_enabled: default_spell_check_enabled(),
         overlay_style: default_overlay_style(),
+        overlay_native_enabled: default_overlay_native_enabled(),
+        prompt_library_enabled: default_prompt_library_enabled(),
+        server_mode_enabled: default_server_mode_enabled(),
+        server_port: default_server_port(),
+        server_bind: default_server_bind(),
+        server_auth_token: Some(generate_server_auth_token()),
     }
 }
 
@@ -1232,6 +1302,14 @@ fn apply_settings_migrations(
             settings.transcribe_accelerator = TranscribeAcceleratorSetting::Auto;
             settings.transcribe_gpu_device = default_transcribe_gpu_device();
         }
+        // Bump to 1 before the <2 migration so ordering is explicit.
+        settings.settings_schema_version = 1;
+        updated = true;
+    }
+    if stored_schema_version < 2 {
+        // Phase 5: server_mode / prompt_library / overlay_native flags were added.
+        // Missing keys already default via `#[serde(default)]` (overlay_native
+        // defaults true on macOS/Windows, false on Linux). Just bump the version.
         settings.settings_schema_version = CURRENT_SETTINGS_SCHEMA_VERSION;
         updated = true;
     }
@@ -1311,7 +1389,8 @@ mod tests {
 
     /// Frozen snapshot of a real v0.9.0-era settings store, as written to
     /// disk. This pins backwards compatibility: it must always parse strictly
-    /// (no salvage) and require no migration rewrite.
+    /// (no salvage). After schema 2, version-1 stores migrate to 2 (new
+    /// server/prompt/overlay_native flags default via `#[serde(default)]`).
     ///
     /// If a schema change breaks this test, do NOT just update the fixture —
     /// it stands in for the stores on users' machines. Add a
@@ -1425,8 +1504,23 @@ mod tests {
         assert_eq!(settings.log_level, LogLevel::Debug);
         assert_eq!(settings.sound_theme, SoundTheme::Pop);
 
-        // A current-format store must not be rewritten on every read.
-        assert!(!apply_settings_migrations(&mut settings, &stored));
+        // Phase 5: version 1 store migrates to 2; new flags default via serde(default).
+        assert!(apply_settings_migrations(&mut settings, &stored));
+        assert_eq!(settings.settings_schema_version, CURRENT_SETTINGS_SCHEMA_VERSION);
+        assert_eq!(settings.settings_schema_version, 2);
+        // New flags added in schema 2 stay at defaults when missing.
+        assert!(!settings.prompt_library_enabled);
+        assert!(!settings.server_mode_enabled);
+        assert_eq!(settings.server_port, default_server_port());
+        assert_eq!(settings.server_bind, default_server_bind());
+        assert!(settings.server_auth_token.is_none());
+        #[cfg(target_os = "linux")]
+        assert!(!settings.overlay_native_enabled);
+        #[cfg(not(target_os = "linux"))]
+        assert!(settings.overlay_native_enabled);
+        // Future reads of the migrated store must be idempotent.
+        let migrated_value = serde_json::to_value(&settings).unwrap();
+        assert!(!apply_settings_migrations(&mut settings, &migrated_value));
     }
 
     #[test]
@@ -1517,10 +1611,17 @@ mod tests {
             serde_json::json!([1, 2, 3]),
         ] {
             let salvaged = salvage_settings(&stored);
-            assert_eq!(
-                serde_json::to_value(&salvaged).unwrap(),
-                default_settings_json()
-            );
+            let mut salvaged_value = serde_json::to_value(&salvaged).unwrap();
+            let mut expected = default_settings_json();
+            // server_auth_token is randomly generated per get_default_settings() call; normalize.
+            salvaged_value
+                .as_object_mut()
+                .unwrap()
+                .remove("server_auth_token");
+            expected.as_object_mut().unwrap().remove("server_auth_token");
+            assert_eq!(salvaged_value, expected);
+            // Still ensure a token was generated (opt-in server auth).
+            assert!(salvaged.server_auth_token.is_some());
         }
     }
 

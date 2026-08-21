@@ -1364,3 +1364,38 @@ pub async fn get_available_accelerators() -> crate::managers::transcription::Ava
         .await
         .expect("get_available_accelerators panicked")
 }
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_server_mode_enabled_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.server_mode_enabled = enabled;
+    // Ensure token exists when enabling
+    if enabled && settings.server_auth_token.is_none() {
+        settings.server_auth_token = Some(settings::generate_server_auth_token());
+    }
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_server_port_setting(app: AppHandle, port: u16) -> Result<(), String> {
+    if port == 0 {
+        return Err("Port must be non-zero".to_string());
+    }
+    let mut settings = settings::get_settings(&app);
+    settings.server_port = port;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn regenerate_server_token_setting(app: AppHandle) -> Result<String, String> {
+    let mut settings = settings::get_settings(&app);
+    let token = settings::generate_server_auth_token();
+    settings.server_auth_token = Some(token.clone());
+    settings::write_settings(&app, settings);
+    Ok(token)
+}
