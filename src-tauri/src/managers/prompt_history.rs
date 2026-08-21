@@ -2,11 +2,20 @@ use anyhow::Result;
 use chrono::Utc;
 use log::{debug, error, info};
 use rusqlite::{params, Connection};
+use rusqlite_migration::{Migrations, M};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::path::PathBuf;
 use tauri::AppHandle;
 use tauri_specta::Event;
+
+static MIGRATIONS: &[M] = &[M::up(
+    "CREATE TABLE IF NOT EXISTS prompt_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                prompt_text TEXT NOT NULL,
+                timestamp INTEGER NOT NULL
+            );",
+)];
 
 /// Maximum number of prompt entries retained; the oldest are pruned on
 /// insert so the home page stays a quick-scannable log of pasted prompts.
@@ -54,14 +63,22 @@ impl PromptHistoryManager {
     fn init_database(&self) -> Result<()> {
         info!("Initializing prompt history database at {:?}", self.db_path);
 
-        let conn = Connection::open(&self.db_path)?;
-        conn.execute_batch(
-            "CREATE TABLE IF NOT EXISTS prompt_history (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                prompt_text TEXT NOT NULL,
-                timestamp INTEGER NOT NULL
-            );",
-        )?;
+        let mut conn = Connection::open(&self.db_path)?;
+        conn.busy_timeout(std::time::Duration::from_millis(5000))?;
+        let migrations = Migrations::new(MIGRATIONS.to_vec());
+        #[cfg(debug_assertions)]
+        migrations.validate().expect("Invalid prompt_history migrations");
+        let version_before: i32 =
+            conn.pragma_query_value(None, "user_version", |row| row.get(0))?;
+        migrations.to_latest(&mut conn)?;
+        let version_after: i32 =
+            conn.pragma_query_value(None, "user_version", |row| row.get(0))?;
+        if version_after > version_before {
+            info!(
+                "Prompt history database migrated from {} to {}",
+                version_before, version_after
+            );
+        }
         Ok(())
     }
 

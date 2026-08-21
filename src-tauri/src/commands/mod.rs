@@ -4,6 +4,7 @@ pub mod history;
 pub mod models;
 pub mod os_speech;
 pub mod prompt_history;
+pub mod prompt_library;
 pub mod spellcheck;
 pub mod transcription;
 pub mod vocabulary;
