@@ -1399,3 +1399,19 @@ pub fn regenerate_server_token_setting(app: AppHandle) -> Result<String, String>
     settings::write_settings(&app, settings);
     Ok(token)
 }
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_overlay_native_enabled_setting(
+    app: AppHandle,
+    enabled: bool,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.overlay_native_enabled = enabled;
+    settings::write_settings(&app, settings);
+    // Keep cached flag in sync without restart (lib.rs startup also syncs)
+    crate::overlay::update_overlay_enabled_cache(
+        settings.overlay_style != crate::settings::OverlayStyle::None,
+    );
+    Ok(())
+}

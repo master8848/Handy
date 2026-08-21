@@ -374,6 +374,10 @@
             "bottom": "Bottom",
             "top": "Top"
           }
+        },
+        "native": {
+          "title": "Native Overlay",
+          "description": "Use NSPanel (macOS) / HWND (Windows) instead of WebView. Saves 30–80 MB. Requires restart. Linux keeps WebView."
         }
       },
       "pasteMethod": {

@@ -733,6 +733,7 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_server_mode_enabled_setting,
             shortcut::change_server_port_setting,
             shortcut::regenerate_server_token_setting,
+            shortcut::change_overlay_native_enabled_setting,
             shortcut::handy_keys::start_handy_keys_recording,
             shortcut::handy_keys::stop_handy_keys_recording,
             secure_input::get_secure_input_status,

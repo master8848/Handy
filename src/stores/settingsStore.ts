@@ -182,6 +182,8 @@ const settingUpdaters: {
   server_mode_enabled: (value) =>
     commands.changeServerModeEnabledSetting(value as boolean),
   server_port: (value) => commands.changeServerPortSetting(value as number),
+  overlay_native_enabled: (value) =>
+    commands.changeOverlayNativeEnabledSetting(value as boolean),
 };
 
 export const useSettingsStore = create<SettingsStore>()(
