@@ -11,12 +11,14 @@
   },
   "sidebar": {
     "general": "सामान्य",
+    "appearance": "रूप",
     "models": "मॉडल",
     "advanced": "ऐडवांस",
     "postProcessing": "पोस्ट प्रोसेस",
     "history": "इतिहास",
     "debug": "डिबग",
-    "about": "के बारे में"
+    "about": "के बारे में",
+    "transcribe": "Transcribe"
   },
   "onboarding": {
     "subtitle": "शुरू करने के लिए, एक ट्रांसक्रिप्शन मॉडल चुनें",
@@ -144,6 +146,11 @@
     "downloadSpeed": "{{speed}} MB/s",
     "cancel": "रद्द करें",
     "cancelDownload": "डाउनलोड रद्द करें",
+    "loaded": "लोड किया गया",
+    "loadedCount": "{{count}} लोड किए गए",
+    "unload": "अनलोड करें",
+    "unloadTooltip": "मॉडल को मेमोरी से अनलोड करें",
+    "builtIn": "बिल्ट-इन",
     "capabilities": {
       "languageSelection": "कई इनपुट भाषाओं के साथ काम करता है",
       "singleLanguage": "केवल इसी भाषा के साथ काम करता है",
@@ -152,7 +159,8 @@
       "translation": "अंग्रेज़ी में अनुवाद कर सकता है",
       "translate": "अनुवाद करें",
       "streaming": "बोलते समय लाइव ट्रांसक्रिप्शन दिखाता है"
-    }
+    },
+    "loadedModels": "Loaded models"
   },
   "settings": {
     "modelSettings": {
@@ -215,7 +223,17 @@
         "label": "फिर से स्कैन करें",
         "tooltip": "Handy के बाहर, मॉडल फ़ोल्डर या Hugging Face कैश में जोड़े गए मॉडल के लिए फिर से स्कैन करें"
       },
-      "noModelsMatch": "इस फ़िल्टर से मेल खाने वाला कोई मॉडल नहीं है."
+      "noModelsMatch": "इस फ़िल्टर से मेल खाने वाला कोई मॉडल नहीं है.",
+      "loadedHint": "तुरंत स्विच करने के लिए क्लिक करें",
+      "multiModel": {
+        "title": "एक साथ कई मॉडल लोड करें",
+        "description": "कई मॉडलों को मेमोरी में रखें ताकि आप तुरंत स्विच कर सकें और ट्रांसक्रिप्शन की तुलना कर सकें। अधिक RAM उपयोग करता है।"
+      },
+      "osSpeech": {
+        "authRequired": "डिवाइस वाक् पहचान का उपयोग करने के लिए अनुमति आवश्यक है",
+        "grantPermission": "अनुमति दें",
+        "retry": "पुनः प्रयास करें"
+      }
     },
     "sound": {
       "title": "आवाज़",
@@ -368,6 +386,35 @@
       "voiceActivityDetection": {
         "title": "वॉइस एक्टिविटी डिटेक्शन",
         "description": "रिकॉर्डिंग से बिना आवाज़ वाले हिस्से हटाएं. स्ट्रीमिंग वाले मॉडल लंबी VAD टेल इस्तेमाल करते हैं; VAD बंद करने पर कच्चा ऑडियो रिकॉर्ड होता है."
+      },
+      "customWordDatasets": {
+        "title": "Word Datasets",
+        "description": "Term lists that improve recognition of names and specialized terms. Toggle a dataset on to feed its terms to the model; every transcription is also fuzzy-corrected against enabled terms.",
+        "activeWords_one": "{{count}} word active",
+        "activeWords_other": "{{count}} words active",
+        "builtinBadge": "Built-in",
+        "words_one": "{{count}} word",
+        "words_other": "{{count}} words",
+        "expanded": "Show words",
+        "collapsed": "Hide words",
+        "toggle": "Toggle dataset",
+        "readOnlyHint": "Built-in datasets are read-only. Toggle them on or off.",
+        "addWordPlaceholder": "Add a term",
+        "add": "Add",
+        "removeWord": "Remove {{word}}",
+        "duplicateWord": "\"{{word}}\" already exists in this dataset",
+        "newDatasetPlaceholder": "Dataset name",
+        "create": "Create",
+        "deleteDataset": "Delete dataset",
+        "deleteConfirm": "Delete \"{{name}}\"? This cannot be undone.",
+        "rename": "Rename",
+        "importButton": "Import .txt",
+        "importSuccess": "Imported \"{{name}}\" with {{count}} words",
+        "importFailed": "Import failed: {{error}}",
+        "export": "Export",
+        "exportSuccess": "Exported \"{{name}}\"",
+        "exportFailed": "Export failed: {{error}}",
+        "emptyList": "No datasets yet. Create your own or import a .txt file with one term per line."
       }
     },
     "postProcessing": {
@@ -561,6 +608,22 @@
         "failed": "डायग्नोस्टिक विफल: {{error}}"
       }
     },
+    "appearance": {
+      "title": "रूप",
+      "description": "Handy का रूप अनुकूलित करें",
+      "accent": {
+        "title": "एक्सेंट रंग",
+        "description": "ऐप में उपयोग होने वाला हाइलाइट रंग चुनें",
+        "options": {
+          "pink": "गुलाबी",
+          "orange": "नारंगी",
+          "purple": "बैंगनी",
+          "green": "हरा",
+          "blue": "नीला",
+          "red": "लाल"
+        }
+      }
+    },
     "about": {
       "title": "के बारे में",
       "version": {
@@ -608,7 +671,13 @@
     "portableUpdateMessage": "पोर्टेबल इंस्टॉल अपने आप अपडेट नहीं हो सकते. नीचे से अपने सिस्टम के लिए इंस्टॉलर डाउनलोड करें, उसे चलाएँ और उसी फ़ोल्डर में इंस्टॉल करें — आपका Data/ फ़ोल्डर (सेटिंग, मॉडल, रिकॉर्डिंग) जहाँ है वहीं बना रहता है.",
     "portableUpdateButton": "इंस्टॉलर डाउनलोड करें",
     "portableUpdateBrowseMessage": "पोर्टेबल इंस्टॉल अपने आप अपडेट नहीं हो सकते. GitHub Releases से अपने सिस्टम के लिए नया वर्शन डाउनलोड करें और उसे उसी फ़ोल्डर में इंस्टॉल करें — आपका Data/ फ़ोल्डर (सेटिंग, मॉडल, रिकॉर्डिंग) जहाँ है वहीं बना रहता है.",
-    "portableUpdateBrowseButton": "GitHub Releases खोलें"
+    "portableUpdateBrowseButton": "GitHub Releases खोलें",
+    "harper": {
+      "label": "Spell check",
+      "ready": "Grammar & spelling engine ready",
+      "initializing": "Initializing grammar & spelling engine…",
+      "disabled": "Spell check disabled"
+    }
   },
   "whatsNew": {
     "title": "Handy v{{version}} में नया क्या है"
@@ -671,5 +740,22 @@
     "learnMore": "इसे कैसे ठीक करें",
     "recorderBlocked": "अभी शॉर्टकट रिकॉर्ड नहीं किए जा सकते — macOS Secure Input कुंजी इवेंट ब्लॉक कर रहा है. पहले Secure Input चेतावनी हल करें.",
     "dismiss": "खारिज करें"
+  },
+  "dictation": {
+    "title": "Transcribe",
+    "description": "Type a prompt or dictate with the active speech-to-text model.",
+    "placeholder": "Type here or press the mic to dictate…",
+    "startRecording": "Start dictation",
+    "stopRecording": "Stop dictation",
+    "recording": "Recording…",
+    "transcribing": "Transcribing…",
+    "noModel": "No transcription model selected",
+    "noModelDescription": "Choose or download a model in the Models tab, or use the device's built-in speech recognition — no download needed.",
+    "useOnDevice": "Use device speech recognition",
+    "micError": "Couldn't start recording: {{error}}",
+    "empty": "No speech detected.",
+    "copied": "Copied to clipboard",
+    "spellCheck": "Spell check",
+    "cancel": "Cancel"
   }
 }

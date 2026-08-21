@@ -38,7 +38,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
   // Streaming (multilingual). Everything else hides behind "Show all".
   const { downloadable, topPicks, otherRecommended, rest } = useMemo(() => {
     const downloadable = models.filter(
-      (m: ModelInfo) => !m.is_downloaded && !isLegacySource(m),
+      (m: ModelInfo) =>
+        !m.is_downloaded && !isLegacySource(m) && m.engine_type !== "OsSpeech",
     );
     const recommended = downloadable.filter((m: ModelInfo) => m.is_recommended);
     // `models` arrives in editorial rank order (the backend sorts by rank_of,
@@ -52,6 +53,17 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
       rest,
     };
   }, [models]);
+
+  // Models already on disk that the user can pick right away. The virtual
+  // os-speech engine is deliberately excluded — onboarding should present
+  // downloadable/hosted models, not the device's built-in recognizer.
+  const existingModels = useMemo(
+    () =>
+      models.filter(
+        (m: ModelInfo) => m.is_downloaded && m.engine_type !== "OsSpeech",
+      ),
+    [models],
+  );
 
   const hasRecommended = topPicks.length > 0 || otherRecommended.length > 0;
   // When nothing recommended remains to download (e.g. all already on disk),
@@ -154,25 +166,23 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
 
       <div className="max-w-[600px] w-full mx-auto text-center flex-1 flex flex-col min-h-0">
         <div className="space-y-6 pb-6">
-          {models.some((m: ModelInfo) => m.is_downloaded) && (
+          {existingModels.length > 0 && (
             <div className="space-y-3">
               <div className="text-left">
                 <h2 className="text-sm font-medium text-text/60">
                   {t("onboarding.existingModelsTitle")}
                 </h2>
               </div>
-              {models
-                .filter((m: ModelInfo) => m.is_downloaded)
-                .map((model: ModelInfo) => (
-                  <ModelCard
-                    key={model.id}
-                    model={model}
-                    status={getExistingModelStatus(model.id)}
-                    disabled={isBusy}
-                    onSelect={handleSelectExistingModel}
-                    showRecommended={false}
-                  />
-                ))}
+              {existingModels.map((model: ModelInfo) => (
+                <ModelCard
+                  key={model.id}
+                  model={model}
+                  status={getExistingModelStatus(model.id)}
+                  disabled={isBusy}
+                  onSelect={handleSelectExistingModel}
+                  showRecommended={false}
+                />
+              ))}
             </div>
           )}
 

@@ -23,7 +23,7 @@ mod download;
 
 use download::{HttpDownloadOutcome, DOWNLOAD_STALL_TIMEOUT};
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Type)]
 pub enum EngineType {
     /// Any GGML/GGUF model loaded through transcribe-cpp (Whisper, Parakeet,
     /// Voxtral, Qwen3-ASR, Nemotron, …). The architecture is auto-detected from
@@ -36,6 +36,9 @@ pub enum EngineType {
     GigaAM,
     Canary,
     Cohere,
+    /// OS-provided speech recognition (SFSpeechRecognizer on macOS, SAPI on
+    /// Windows). No weights — nothing to download or hold on disk.
+    OsSpeech,
 }
 
 /// Where a model comes from and how Handy obtains it — the routing discriminant
@@ -82,6 +85,9 @@ pub struct ModelInfo {
 }
 
 const CHINESE_LANGUAGE_CODE: &str = "zh";
+
+/// Registry id of the OS-provided speech recognition "model" (no download).
+pub const OS_SPEECH_MODEL_ID: &str = "os-speech";
 
 fn recognition_language(language: &str) -> &str {
     match language {
@@ -1111,6 +1117,54 @@ impl ModelManager {
         // find. Additive — see `seed_catalog_models`.
         Self::seed_catalog_models(&mut available_models);
 
+        // OS-provided speech recognition: no download, always "installed" when
+        // the platform backend is present. Ranked last (rank_of returns
+        // u32::MAX for unknown ids) so auto-selection only lands on it when
+        // nothing else is downloaded.
+        #[cfg(target_os = "macos")]
+        let os_speech_available = crate::os_speech::available();
+        #[cfg(target_os = "windows")]
+        let os_speech_available = crate::os_speech_win::available();
+        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+        let os_speech_available = false;
+        if os_speech_available {
+            #[cfg(target_os = "macos")]
+            let os_speech_name = "macOS Speech Recognition".to_string();
+            #[cfg(target_os = "windows")]
+            let os_speech_name = "Windows Speech Recognition".to_string();
+            #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+            let os_speech_name = String::new();
+            available_models.insert(
+                "os-speech".to_string(),
+                ModelInfo {
+                    id: "os-speech".to_string(),
+                    name: os_speech_name,
+                    description:
+                        "Uses the device's built-in speech recognition — no download needed"
+                            .to_string(),
+                    filename: String::new(),
+                    source: ModelSource::Local,
+                    size_mb: 0,
+                    is_downloaded: true,
+                    is_downloading: false,
+                    partial_size: 0,
+                    is_directory: false,
+                    engine_type: EngineType::OsSpeech,
+                    accuracy_score: 0.0,
+                    speed_score: 0.0,
+                    supports_translation: false,
+                    is_recommended: false,
+                    // The OS backends always use the system locale; the language
+                    // intent resolves to "auto" and is otherwise ignored.
+                    supported_languages: vec!["auto".to_string()],
+                    supports_language_selection: false,
+                    is_custom: false,
+                    supports_streaming: false,
+                    supports_language_detection: true,
+                },
+            );
+        }
+
         // Auto-discover custom transcribe-cpp models (.bin / .gguf) in the models directory
         if let Err(e) = Self::discover_custom_transcribe_models(&models_dir, &mut available_models)
         {
@@ -1370,6 +1424,13 @@ impl ModelManager {
         let mut vanished_alternates: Vec<String> = Vec::new();
 
         for model in models.values_mut() {
+            // OS speech is always "installed" — it has no disk presence.
+            if model.engine_type == EngineType::OsSpeech {
+                model.is_downloaded = true;
+                model.is_downloading = false;
+                model.partial_size = 0;
+                continue;
+            }
             if let ModelSource::HuggingFace { repo_id, revision } = &model.source {
                 // A models-dir copy counts too: mirror-fallback downloads land
                 // there, and it makes manual drop-ins of catalog files work.
@@ -2151,6 +2212,11 @@ impl ModelManager {
     }
 
     pub async fn download_model(&self, model_id: &str) -> Result<()> {
+        if model_id == OS_SPEECH_MODEL_ID {
+            return Err(anyhow::anyhow!(
+                "Downloading is not applicable to OS speech recognition"
+            ));
+        }
         let model_info = {
             let models = self.available_models.lock().unwrap();
             models.get(model_id).cloned()
@@ -2351,6 +2417,12 @@ impl ModelManager {
     pub fn delete_model(&self, model_id: &str) -> Result<()> {
         debug!("ModelManager: delete_model called for: {}", model_id);
 
+        if model_id == OS_SPEECH_MODEL_ID {
+            return Err(anyhow::anyhow!(
+                "Deleting is not applicable to OS speech recognition"
+            ));
+        }
+
         let model_info = {
             let models = self.available_models.lock().unwrap();
             models.get(model_id).cloned()
@@ -2475,6 +2547,12 @@ impl ModelManager {
             .get_model_info(model_id)
             .ok_or_else(|| anyhow::anyhow!("Model not found: {}", model_id))?;
 
+        if model_info.engine_type == EngineType::OsSpeech {
+            return Err(anyhow::anyhow!(
+                "OS speech recognition has no model file on disk"
+            ));
+        }
+
         if !model_info.is_downloaded {
             return Err(anyhow::anyhow!("Model not available: {}", model_id));
         }
@@ -2542,6 +2620,12 @@ impl ModelManager {
     pub fn cancel_download(&self, model_id: &str) -> Result<()> {
         debug!("ModelManager: cancel_download called for: {}", model_id);
 
+        if model_id == OS_SPEECH_MODEL_ID {
+            return Err(anyhow::anyhow!(
+                "Cancelling a download is not applicable to OS speech recognition"
+            ));
+        }
+
         // Trigger the cancellation token to stop the download. The HF path
         // aborts its in-flight chunk tasks and unwinds promptly; the URL path
         // observes it on the next chunk of its stream loop.
@@ -2586,6 +2670,19 @@ mod tests {
 
         assert_eq!(effective_language("zh-Hans", &languages, false), "zh-Hans");
         assert_eq!(effective_language("zh-Hant", &languages, false), "zh-Hant");
+    }
+
+    #[test]
+    fn test_os_speech_language_config_always_resolves_to_auto() {
+        // The os-speech entry advertises ["auto"] with language detection: every
+        // intent (including an explicit unsupported code) must resolve to "auto"
+        // so the language is never handed to the OS backend.
+        let languages = vec!["auto".to_string()];
+
+        assert_eq!(effective_language("auto", &languages, true), "auto");
+        assert_eq!(effective_language("en", &languages, true), "auto");
+        assert_eq!(effective_language("zh-Hant", &languages, true), "auto");
+        assert_eq!(effective_language("en", &languages, false), "auto");
     }
 
     #[test]

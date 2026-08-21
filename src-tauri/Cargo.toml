@@ -52,6 +52,16 @@ cpal = "0.16.0"
 anyhow = "1.0.95"
 rubato = "0.16.2"
 hound = "3.5.1"
+symphonia = { version = "0.5", default-features = false, features = [
+  "aac",
+  "flac",
+  "isomp4",
+  "mp3",
+  "ogg",
+  "pcm",
+  "vorbis",
+  "wav",
+] }
 log = "0.4.25"
 env_filter = "0.1.0"
 tokio = "1.43.0"
@@ -75,6 +85,13 @@ sha2 = "0.10"
 transcribe-rs = { version = "0.3.8", features = ["onnx"] }
 transcribe-cpp = { version = "0.1.3", default-features = false }
 handy-keys = "0.3.3"
+# Offline grammar + spelling engine (Apache-2.0, Automattic/harper). `concurrent`
+# swaps Harper's Rc primitives for Arc so the lint group can live in shared state;
+# `thesaurus` powers word-level replacement suggestions.
+harper-core = { version = "2.7", default-features = false, features = [
+  "thesaurus",
+  "concurrent",
+] }
 ferrous-opencc = "0.2.3"
 clap = { version = "4", features = ["derive"] }
 specta = "=2.0.0-rc.22"
@@ -103,8 +120,16 @@ tauri-plugin-updater = "2.10.0"
 # link a baseline ONNX Runtime (dynamically, via ORT_LIB_LOCATION in build.yml)
 # with proper runtime CPU dispatch. Base `transcribe-rs` (features = ["onnx"])
 # is inherited here, so Parakeet/Moonshine/etc. still run on CPU.
+# os_speech_win (Windows system speech backend) needs: Win32_Media_Speech for
+# the SAPI 5 in-proc recognizer (the only OS path that accepts WAV-file input —
+# WinRT's SpeechRecognizer has no stream-input API), Win32_Media_Audio for the
+# WAVEFORMATEX types in BindToFile's signature, and Media_SpeechRecognition
+# (+ Foundation/Globalization) for availability probing. Note the 0.61.x
+# WinRT feature names omit the "Windows_" prefix.
 windows = { version = "0.61.3", features = [
+  "Win32_Media_Audio",
   "Win32_Media_Audio_Endpoints",
+  "Win32_Media_Speech",
   "Win32_System_Com_StructuredStorage",
   "Win32_System_DataExchange",
   "Win32_System_LibraryLoader",
@@ -115,6 +140,9 @@ windows = { version = "0.61.3", features = [
   "Win32_Foundation",
   "Win32_Graphics_Gdi",
   "Win32_UI_WindowsAndMessaging",
+  "Foundation",
+  "Globalization",
+  "Media_SpeechRecognition",
 ] }
 winreg = "0.55"
 

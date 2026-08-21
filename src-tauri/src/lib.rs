@@ -13,6 +13,8 @@ mod input;
 mod llm_client;
 mod managers;
 mod memory;
+mod os_speech;
+mod os_speech_win;
 mod overlay;
 mod paste_tx;
 pub mod portable;
@@ -20,10 +22,12 @@ mod secure_input;
 mod settings;
 mod shortcut;
 mod signal_handle;
+mod spellcheck;
 mod transcription_coordinator;
 mod tray;
 mod tray_i18n;
 mod utils;
+mod vocab;
 
 pub use cli::CliArgs;
 #[cfg(debug_assertions)]
@@ -34,6 +38,7 @@ use env_filter::Builder as EnvFilterBuilder;
 use managers::audio::AudioRecordingManager;
 use managers::history::HistoryManager;
 use managers::model::ModelManager;
+use managers::prompt_history::PromptHistoryManager;
 use managers::transcription::TranscriptionManager;
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use std::sync::Arc;
@@ -167,6 +172,9 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     );
     let history_manager =
         Arc::new(HistoryManager::new(app_handle).expect("Failed to initialize history manager"));
+    let prompt_history_manager = Arc::new(
+        PromptHistoryManager::new(app_handle).expect("Failed to initialize prompt history manager"),
+    );
 
     // Initialize the transcribe-cpp native backend (logging + backend module
     // registration) once, before any whisper model is loaded.
@@ -180,7 +188,16 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     app_handle.manage(model_manager.clone());
     app_handle.manage(transcription_manager.clone());
     app_handle.manage(history_manager.clone());
+    app_handle.manage(prompt_history_manager.clone());
     app_handle.manage(tray::CurrentTrayIconState::new());
+    // Spell checker is lazy: the Harper dictionary is parsed on first check.
+    let spell_checker = Arc::new(spellcheck::SpellChecker::with_app_handle(
+        app_handle.clone(),
+    ));
+    app_handle.manage(spell_checker.clone());
+    // Eagerly build the Harper lint group off the main thread so the status
+    // flips to initialized shortly after launch.
+    std::thread::spawn(move || spell_checker.ensure_initialized());
 
     // Note: Shortcuts are NOT initialized here.
     // The frontend is responsible for calling the `initialize_shortcuts` command
@@ -539,7 +556,7 @@ fn run_headless_transcription(app: &AppHandle, args: &CliArgs) -> i32 {
             }
         }
         let t = Instant::now();
-        match tm.transcribe(samples.clone()) {
+        match tm.transcribe_with_wav_path(samples.clone(), Some(&wav)) {
             Ok(out) => text = out,
             Err(e) => {
                 eprintln!("error: transcribe failed: {}", e);
@@ -609,6 +626,7 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_audio_feedback_volume_setting,
             shortcut::change_sound_theme_setting,
             shortcut::change_theme_setting,
+            shortcut::change_accent_color_setting,
             shortcut::change_start_hidden_setting,
             shortcut::change_autostart_setting,
             shortcut::change_translate_to_english_setting,
@@ -640,6 +658,10 @@ pub fn run(cli_args: CliArgs) {
             shortcut::delete_post_process_prompt,
             shortcut::set_post_process_selected_prompt,
             shortcut::update_custom_words,
+            shortcut::update_text_replacements,
+            commands::vocabulary::update_custom_word_datasets,
+            commands::vocabulary::import_custom_word_dataset,
+            commands::vocabulary::export_custom_word_dataset,
             shortcut::suspend_all_bindings,
             shortcut::resume_all_bindings,
             shortcut::change_mute_while_recording_setting,
@@ -686,6 +708,8 @@ pub fn run(cli_args: CliArgs) {
             commands::models::get_transcription_model_status,
             commands::models::is_model_loading,
             commands::models::rescan_local_models,
+            commands::models::get_loaded_models,
+            commands::models::set_multi_model_loading,
             commands::audio::update_microphone_mode,
             commands::audio::get_microphone_mode,
             commands::audio::get_windows_microphone_permission_status,
@@ -704,6 +728,8 @@ pub fn run(cli_args: CliArgs) {
             commands::transcription::set_model_unload_timeout,
             commands::transcription::get_model_load_status,
             commands::transcription::unload_model_manually,
+            commands::transcription::unload_model_by_id,
+            commands::transcription::transcribe_audio_file,
             commands::history::get_history_entries,
             commands::history::toggle_history_entry_saved,
             commands::history::get_audio_file_path,
@@ -711,10 +737,26 @@ pub fn run(cli_args: CliArgs) {
             commands::history::retry_history_entry_transcription,
             commands::history::update_history_limit,
             commands::history::update_recording_retention_period,
+            commands::os_speech::os_speech_available,
+            commands::os_speech::os_speech_authorization_status,
+            commands::os_speech::os_speech_request_authorization,
+            commands::os_speech::transcribe_os_wav,
+            commands::spellcheck::check_spelling,
+            commands::spellcheck::harper_status,
+            commands::spellcheck::change_spell_check_enabled_setting,
+            commands::prompt_history::paste_prompt,
+            commands::prompt_history::save_prompt_history_entry,
+            commands::prompt_history::list_prompt_history,
+            commands::prompt_history::delete_prompt_history_entry,
+            commands::prompt_history::clear_prompt_history,
+            commands::dictation::start_dictation,
+            commands::dictation::stop_dictation,
+            commands::dictation::cancel_dictation,
             helpers::clamshell::is_laptop,
         ])
         .events(collect_events![
             managers::history::HistoryUpdatePayload,
+            managers::prompt_history::PromptHistoryUpdatePayload,
             managers::transcription::StreamTextEvent,
             managers::transcription::StreamPhaseEvent,
         ]);

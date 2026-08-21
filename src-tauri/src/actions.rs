@@ -94,6 +94,21 @@ fn is_blank_transcription(transcription: &str) -> bool {
     transcription.trim().is_empty()
 }
 
+/// Apply the user's enabled find/replace pairs to a text. Pairs with an empty
+/// `find` are skipped. Runs in declaration order.
+fn apply_text_replacements(
+    text: &str,
+    replacements: &[crate::settings::TextReplacement],
+) -> String {
+    let mut out = text.to_string();
+    for r in replacements {
+        if r.enabled && !r.find.is_empty() {
+            out = out.replace(r.find.as_str(), r.replace.as_str());
+        }
+    }
+    out
+}
+
 async fn complete_unless_cancelled<F, C>(operation: F, is_cancelled: C) -> Option<F::Output>
 where
     F: Future,
@@ -458,6 +473,23 @@ pub(crate) async fn process_transcription_output(
         post_processed_text = Some(final_text.clone());
     }
 
+    // Apply user-defined text replacements (mishearing fixes) as the final
+    // step so every pipeline (live dictation, history retry, file
+    // transcription) benefits, including post-processed output.
+    let replacements = settings
+        .text_replacements
+        .iter()
+        .filter(|r| r.enabled && !r.find.is_empty())
+        .cloned()
+        .collect::<Vec<_>>();
+    if !replacements.is_empty() {
+        let replaced = apply_text_replacements(&final_text, &replacements);
+        if let Some(post) = post_processed_text.as_mut() {
+            *post = apply_text_replacements(post, &replacements);
+        }
+        final_text = replaced;
+    }
+
     ProcessedTranscription {
         final_text,
         post_processed_text,
@@ -687,6 +719,7 @@ impl ShortcutAction for TranscribeAction {
                     let sample_count = samples.len();
                     let file_name = format!("handy-{}.wav", chrono::Utc::now().timestamp());
                     let wav_path = hm.recordings_dir().join(&file_name);
+                    let wav_path_for_transcribe = wav_path.clone();
                     let wav_path_for_verify = wav_path.clone();
                     let samples_for_wav = samples.clone();
                     let wav_handle = tauri::async_runtime::spawn_blocking(move || {
@@ -705,7 +738,9 @@ impl ShortcutAction for TranscribeAction {
                         // surfaced instead — the worker may still hold the engine,
                         // so a batch fallback would contend with it.
                         Ok(Some(text)) if !text.trim().is_empty() => Ok(text),
-                        Ok(_) => tm.transcribe(samples),
+                        Ok(_) => {
+                            tm.transcribe_with_wav_path(samples, Some(&wav_path_for_transcribe))
+                        }
                         Err(err) => Err(err),
                     };
 
@@ -933,8 +968,8 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
 #[cfg(test)]
 mod tests {
     use super::{
-        complete_unless_cancelled, is_blank_transcription, should_use_streaming_overlay,
-        strip_think_block,
+        apply_text_replacements, complete_unless_cancelled, is_blank_transcription,
+        should_use_streaming_overlay, strip_think_block,
     };
     use crate::settings::OverlayStyle;
     use std::future;
@@ -1016,5 +1051,54 @@ mod tests {
         assert!(!should_use_streaming_overlay(OverlayStyle::Live, false));
         assert!(!should_use_streaming_overlay(OverlayStyle::Minimal, true));
         assert!(!should_use_streaming_overlay(OverlayStyle::None, true));
+    }
+
+    fn replacement(
+        id: &str,
+        find: &str,
+        replace: &str,
+        enabled: bool,
+    ) -> crate::settings::TextReplacement {
+        crate::settings::TextReplacement {
+            id: id.to_string(),
+            find: find.to_string(),
+            replace: replace.to_string(),
+            enabled,
+        }
+    }
+
+    #[test]
+    fn replacements_apply_in_order() {
+        let list = vec![
+            replacement("1", "cloud code", "Claude Code", true),
+            replacement("2", "Claude Code", "Claude", true),
+        ];
+        let out = apply_text_replacements("I use cloud code daily.", &list);
+        assert_eq!(out, "I use Claude daily.");
+    }
+
+    #[test]
+    fn disabled_or_empty_replacements_are_skipped() {
+        let list = vec![
+            replacement("1", "foo", "bar", false),
+            replacement("2", "", "bar", true),
+        ];
+        assert_eq!(apply_text_replacements("foo", &list), "foo");
+        assert_eq!(apply_text_replacements("nothing", &list), "nothing");
+    }
+
+    #[test]
+    fn missing_find_has_no_effect() {
+        let list = vec![replacement("1", "not present", "bar", true)];
+        assert_eq!(
+            apply_text_replacements("original text", &list),
+            "original text"
+        );
+    }
+
+    #[test]
+    fn multiple_occurrences_all_replaced() {
+        let list = vec![replacement("1", "um", "", true)];
+        assert_eq!(apply_text_replacements("um, um, um.", &list), ", , .");
     }
 }

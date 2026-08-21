@@ -1,0 +1,154 @@
+# source: https://csrc.nist.gov/glossary | https://csrc.nist.gov/csrc/media/glossary/glossary-export.zip (CNSSI 4009)
+
+access control
+access control list
+accountability
+advanced persistent threat
+air gap
+antivirus
+attack surface
+audit log
+audit trail
+authentication
+authentication factor
+authorization
+availability
+backdoor
+biometric
+biometric data
+botnet
+breach
+buffer overflow
+certificate
+certificate authority
+certificate revocation
+checksum
+cipher
+ciphertext
+command and control
+compliance
+confidentiality
+credential
+cryptanalysis
+cryptography
+CVE
+CVSS
+cyber attack
+cyber threat
+cybersecurity
+data breach
+data protection
+decryption
+denial of service
+digital certificate
+digital forensics
+digital rights management
+digital signature
+distributed denial of service
+DMZ
+EDR
+encryption
+endpoint
+endpoint detection and response
+endpoint protection platform
+exploit
+firewall
+forensics
+GDPR
+hash function
+HIPAA
+honeypot
+host intrusion detection system
+identity and access management
+identity management
+identity theft
+IDS
+incident management
+incident response
+information assurance
+information security
+insider threat
+integrity
+intrusion detection
+intrusion detection system
+intrusion prevention
+intrusion prevention system
+IPS
+ISO 27001
+key management
+keylogger
+lateral movement
+malicious code
+malicious insider
+malicious software
+malware
+malware analysis
+man in the middle
+MFA
+multi-factor authentication
+network intrusion detection system
+non-repudiation
+passphrase
+password
+patch management
+PCI DSS
+penetration test
+penetration testing
+personal data
+pharming
+phishing
+PII
+PKI
+plaintext
+privacy
+private key
+privilege escalation
+public key
+ransomware
+replay attack
+risk assessment
+risk management
+risk management framework
+rootkit
+sandbox
+security audit
+security awareness
+security incident
+security operations center
+session hijacking
+shoulder surfing
+side channel
+SIEM
+smishing
+SOC 2
+social engineering
+spear phishing
+spoofing
+spyware
+SQL injection
+SSL
+supply chain risk management
+threat
+threat actor
+threat agent
+threat intelligence
+threat modeling
+TLS
+tor
+trojan
+trojan horse
+two-factor authentication
+typosquatting
+VPN
+vulnerability
+vulnerability assessment
+vulnerability scanner
+vulnerability scanning
+watering hole
+whaling
+worm
+XSS
+zero day attack
+zero trust
+zero-day
+zombie

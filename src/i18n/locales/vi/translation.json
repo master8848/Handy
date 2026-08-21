@@ -11,12 +11,14 @@
   },
   "sidebar": {
     "general": "Chung",
+    "appearance": "Giao diện",
     "models": "Mô hình",
     "advanced": "Nâng cao",
     "postProcessing": "Xử lý sau",
     "history": "Lịch sử",
     "debug": "Gỡ lỗi",
-    "about": "Giới thiệu"
+    "about": "Giới thiệu",
+    "transcribe": "Transcribe"
   },
   "onboarding": {
     "subtitle": "Để bắt đầu, hãy chọn một mô hình chuyển đổi giọng nói",
@@ -152,7 +154,13 @@
     },
     "cancel": "Hủy",
     "cancelDownload": "Hủy tải xuống",
-    "legacy": "Cũ"
+    "loaded": "Đã tải",
+    "loadedCount": "{{count}} mô hình đã tải",
+    "unload": "Gỡ tải",
+    "unloadTooltip": "Gỡ mô hình khỏi bộ nhớ",
+    "builtIn": "Tích hợp sẵn",
+    "legacy": "Cũ",
+    "loadedModels": "Loaded models"
   },
   "settings": {
     "modelSettings": {
@@ -168,6 +176,16 @@
         "allLanguages": "Tất cả ngôn ngữ"
       },
       "noModelsMatch": "Không có mô hình nào khớp với bộ lọc này.",
+      "loadedHint": "Nhấp để chuyển ngay lập tức",
+      "multiModel": {
+        "title": "Tải nhiều mô hình cùng lúc",
+        "description": "Giữ nhiều mô hình trong bộ nhớ để chuyển đổi ngay lập tức và so sánh bản phiên âm. Tốn nhiều RAM hơn."
+      },
+      "osSpeech": {
+        "authRequired": "Cần quyền để sử dụng nhận dạng giọng nói của thiết bị",
+        "grantPermission": "Cấp quyền",
+        "retry": "Thử lại"
+      },
       "yourModels": "Mô hình đã tải",
       "availableModels": "Có sẵn để tải xuống",
       "searchPlaceholder": "Tìm mô hình theo tên…",
@@ -368,6 +386,35 @@
       "voiceActivityDetection": {
         "title": "Phát hiện hoạt động giọng nói",
         "description": "Lọc bỏ khoảng lặng khỏi bản ghi. Các mô hình hỗ trợ truyền trực tiếp dùng đuôi VAD dài hơn; tắt VAD sẽ ghi âm thanh thô."
+      },
+      "customWordDatasets": {
+        "title": "Word Datasets",
+        "description": "Term lists that improve recognition of names and specialized terms. Toggle a dataset on to feed its terms to the model; every transcription is also fuzzy-corrected against enabled terms.",
+        "activeWords_one": "{{count}} word active",
+        "activeWords_other": "{{count}} words active",
+        "builtinBadge": "Built-in",
+        "words_one": "{{count}} word",
+        "words_other": "{{count}} words",
+        "expanded": "Show words",
+        "collapsed": "Hide words",
+        "toggle": "Toggle dataset",
+        "readOnlyHint": "Built-in datasets are read-only. Toggle them on or off.",
+        "addWordPlaceholder": "Add a term",
+        "add": "Add",
+        "removeWord": "Remove {{word}}",
+        "duplicateWord": "\"{{word}}\" already exists in this dataset",
+        "newDatasetPlaceholder": "Dataset name",
+        "create": "Create",
+        "deleteDataset": "Delete dataset",
+        "deleteConfirm": "Delete \"{{name}}\"? This cannot be undone.",
+        "rename": "Rename",
+        "importButton": "Import .txt",
+        "importSuccess": "Imported \"{{name}}\" with {{count}} words",
+        "importFailed": "Import failed: {{error}}",
+        "export": "Export",
+        "exportSuccess": "Exported \"{{name}}\"",
+        "exportFailed": "Export failed: {{error}}",
+        "emptyList": "No datasets yet. Create your own or import a .txt file with one term per line."
       }
     },
     "postProcessing": {
@@ -561,6 +608,22 @@
         "error": "Không thể xem trước ghi chú phát hành"
       }
     },
+    "appearance": {
+      "title": "Giao diện",
+      "description": "Tùy chỉnh giao diện của Handy",
+      "accent": {
+        "title": "Màu nhấn",
+        "description": "Chọn màu nhấn được sử dụng trong toàn bộ ứng dụng",
+        "options": {
+          "pink": "Hồng",
+          "orange": "Cam",
+          "purple": "Tím",
+          "green": "Xanh lá",
+          "blue": "Xanh dương",
+          "red": "Đỏ"
+        }
+      }
+    },
     "about": {
       "title": "Giới thiệu",
       "version": {
@@ -608,7 +671,13 @@
     "portableUpdateMessage": "Bản cài đặt di động không thể cập nhật tự động. Hãy tải trình cài đặt phù hợp với hệ thống của bạn bên dưới, chạy nó và cài vào cùng thư mục — thư mục Data/ (cài đặt, mô hình, bản ghi) của bạn được giữ nguyên.",
     "portableUpdateButton": "Tải trình cài đặt",
     "portableUpdateBrowseMessage": "Bản cài đặt di động không thể cập nhật tự động. Hãy tải phiên bản mới nhất phù hợp với hệ thống của bạn từ GitHub Releases và cài vào cùng thư mục — thư mục Data/ (cài đặt, mô hình, bản ghi) của bạn được giữ nguyên.",
-    "portableUpdateBrowseButton": "Mở GitHub Releases"
+    "portableUpdateBrowseButton": "Mở GitHub Releases",
+    "harper": {
+      "label": "Spell check",
+      "ready": "Grammar & spelling engine ready",
+      "initializing": "Initializing grammar & spelling engine…",
+      "disabled": "Spell check disabled"
+    }
   },
   "common": {
     "loading": "Đang tải...",
@@ -671,5 +740,22 @@
     "learnMore": "Cách khắc phục",
     "recorderBlocked": "Hiện không thể ghi phím tắt — Secure Input của macOS đang chặn các sự kiện phím. Hãy xử lý cảnh báo Secure Input trước.",
     "dismiss": "Bỏ qua"
+  },
+  "dictation": {
+    "title": "Transcribe",
+    "description": "Type a prompt or dictate with the active speech-to-text model.",
+    "placeholder": "Type here or press the mic to dictate…",
+    "startRecording": "Start dictation",
+    "stopRecording": "Stop dictation",
+    "recording": "Recording…",
+    "transcribing": "Transcribing…",
+    "noModel": "No transcription model selected",
+    "noModelDescription": "Choose or download a model in the Models tab, or use the device's built-in speech recognition — no download needed.",
+    "useOnDevice": "Use device speech recognition",
+    "micError": "Couldn't start recording: {{error}}",
+    "empty": "No speech detected.",
+    "copied": "Copied to clipboard",
+    "spellCheck": "Spell check",
+    "cancel": "Cancel"
   }
 }

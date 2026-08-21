@@ -2,6 +2,9 @@ fn main() {
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
     build_apple_intelligence_bridge();
 
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    build_os_speech_bridge();
+
     generate_tray_translations();
 
     // Linux ships transcribe-cpp as a shared libtranscribe + loadable ggml
@@ -550,6 +553,162 @@ fn build_apple_intelligence_bridge() {
         println!("cargo:rustc-link-arg=-weak_framework");
         println!("cargo:rustc-link-arg=FoundationModels");
     }
+
+    println!("cargo:rustc-link-arg=-Wl,-rpath,/usr/lib/swift");
+}
+
+/// Compile the macOS system speech-to-text (SFSpeechRecognizer) Swift bridge.
+///
+/// Mirrors `build_apple_intelligence_bridge()`: the real Swift source is used
+/// only when a full Xcode toolchain is present (which implies a macOS 13+ SDK,
+/// required for on-device recognition), otherwise a stub reporting
+/// "not available" is compiled instead. Same SDKROOT/SWIFTC env-var overrides
+/// and the same CLT-only detection are reused.
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn build_os_speech_bridge() {
+    use std::env;
+    use std::path::{Path, PathBuf};
+    use std::process::Command;
+
+    const REAL_SWIFT_FILE: &str = "swift/os_speech.swift";
+    const STUB_SWIFT_FILE: &str = "swift/os_speech_stub.swift";
+
+    println!("cargo:rerun-if-changed={REAL_SWIFT_FILE}");
+    println!("cargo:rerun-if-changed={STUB_SWIFT_FILE}");
+
+    let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
+    let object_path = out_dir.join("os_speech.o");
+    let static_lib_path = out_dir.join("libos_speech.a");
+
+    // SDKROOT/SWIFTC env-var overrides let non-Xcode toolchains (e.g. nixpkgs
+    // with apple-sdk_* + standalone swift) bypass xcrun, which is Xcode-only.
+    let sdk_path = env::var("SDKROOT").unwrap_or_else(|_| {
+        String::from_utf8(
+            Command::new("xcrun")
+                .args(["--sdk", "macosx", "--show-sdk-path"])
+                .output()
+                .expect("Failed to locate macOS SDK")
+                .stdout,
+        )
+        .expect("SDK path is not valid UTF-8")
+        .trim()
+        .to_string()
+    });
+
+    let framework_path = Path::new(&sdk_path).join("System/Library/Frameworks/Speech.framework");
+    // HANDY_FORCE_OS_SPEECH_STUB=1 is an explicit escape hatch: force the stub
+    // even when the active toolchain could build the real path (e.g. to skip
+    // the Swift compile). Mirrors HANDY_FORCE_AI_STUB.
+    let force_stub = env::var("HANDY_FORCE_OS_SPEECH_STUB").as_deref() == Ok("1");
+
+    // Auto-detect a Command-Line-Tools-only toolchain (see the note in
+    // build_apple_intelligence_bridge): the CLT SDK ships Speech.framework but
+    // its swiftc is not a supported toolchain for the real path here, so we
+    // fall back to the stub exactly like the AI bridge does.
+    let command_line_tools_only = env::var("SWIFTC").is_err() && is_command_line_tools_only();
+    if command_line_tools_only && !force_stub {
+        println!(
+            "cargo:warning=Command Line Tools-only toolchain detected; macOS system speech \
+             recognition (SFSpeechRecognizer) falling back to stubs."
+        );
+    }
+
+    let has_speech_sdk = framework_path.exists() && !force_stub && !command_line_tools_only;
+
+    let source_file = if has_speech_sdk {
+        println!("cargo:warning=Building with macOS system speech recognition support.");
+        REAL_SWIFT_FILE
+    } else {
+        // Only claim the framework is "not found" when that's actually true;
+        // otherwise stubs were chosen by the CLT-only/force-stub paths above.
+        if framework_path.exists() {
+            println!("cargo:warning=Building macOS system speech recognition with stubs.");
+        } else {
+            println!(
+                "cargo:warning=Speech SDK not found. Building macOS system speech recognition with stubs."
+            );
+        }
+        STUB_SWIFT_FILE
+    };
+
+    if !Path::new(source_file).exists() {
+        panic!("Source file {} is missing!", source_file);
+    }
+
+    // See SDKROOT note above — same env-override pattern for non-Xcode toolchains.
+    let swiftc_path = env::var("SWIFTC").unwrap_or_else(|_| {
+        String::from_utf8(
+            Command::new("xcrun")
+                .args(["--find", "swiftc"])
+                .output()
+                .expect("Failed to locate swiftc")
+                .stdout,
+        )
+        .expect("swiftc path is not valid UTF-8")
+        .trim()
+        .to_string()
+    });
+
+    let toolchain_swift_lib = Path::new(&swiftc_path)
+        .parent()
+        .and_then(|p| p.parent())
+        .map(|root| root.join("lib/swift/macosx"))
+        .expect("Unable to determine Swift toolchain lib directory");
+    let sdk_swift_lib = Path::new(&sdk_path).join("usr/lib/swift");
+
+    // Use macOS 11.0 as deployment target for compatibility; the
+    // #available(macOS 13.0, *) checks in os_speech.swift handle runtime
+    // availability. `-parse-as-library` keeps library mode so no `_main` is
+    // emitted (see the Apple Intelligence bridge note above).
+    let status = Command::new(&swiftc_path)
+        .args([
+            "-parse-as-library",
+            "-target",
+            "arm64-apple-macosx11.0",
+            "-sdk",
+            &sdk_path,
+            "-O",
+            "-c",
+            source_file,
+            "-o",
+            object_path
+                .to_str()
+                .expect("Failed to convert object path to string"),
+        ])
+        .status()
+        .expect("Failed to invoke swiftc for macOS speech recognition bridge");
+
+    if !status.success() {
+        panic!("swiftc failed to compile {source_file}");
+    }
+
+    let status = Command::new("libtool")
+        .args([
+            "-static",
+            "-o",
+            static_lib_path
+                .to_str()
+                .expect("Failed to convert static lib path to string"),
+            object_path
+                .to_str()
+                .expect("Failed to convert object path to string"),
+        ])
+        .status()
+        .expect("Failed to create static library for macOS speech recognition bridge");
+
+    if !status.success() {
+        panic!("libtool failed for macOS speech recognition bridge");
+    }
+
+    println!("cargo:rustc-link-search=native={}", out_dir.display());
+    println!("cargo:rustc-link-lib=static=os_speech");
+    println!(
+        "cargo:rustc-link-search=native={}",
+        toolchain_swift_lib.display()
+    );
+    println!("cargo:rustc-link-search=native={}", sdk_swift_lib.display());
+    println!("cargo:rustc-link-lib=framework=Foundation");
+    println!("cargo:rustc-link-lib=framework=Speech");
 
     println!("cargo:rustc-link-arg=-Wl,-rpath,/usr/lib/swift");
 }

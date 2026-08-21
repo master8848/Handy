@@ -1,7 +1,7 @@
 use anyhow::Result;
 use hound::{WavReader, WavSpec, WavWriter};
 use log::debug;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// Read a WAV file and return normalised f32 samples.
 pub fn read_wav_samples<P: AsRef<Path>>(file_path: P) -> Result<Vec<f32>> {
@@ -25,6 +25,22 @@ pub fn verify_wav_file<P: AsRef<Path>>(file_path: P, expected_samples: usize) ->
         );
     }
     Ok(())
+}
+
+/// Save audio samples to a unique temporary WAV file (16 kHz mono 16-bit).
+/// Used by OS speech backends that transcribe from a file path.
+pub fn save_temp_wav_file(samples: &[f32]) -> Result<PathBuf> {
+    let file_name = format!(
+        "handy_os_speech_{}_{}.wav",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or_default()
+    );
+    let path = std::env::temp_dir().join(file_name);
+    save_wav_file(&path, samples)?;
+    Ok(path)
 }
 
 /// Save audio samples as a WAV file

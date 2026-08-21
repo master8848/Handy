@@ -11,12 +11,14 @@
   },
   "sidebar": {
     "general": "Generelt",
+    "appearance": "Udseende",
     "models": "Modeller",
     "advanced": "Avanceret",
     "postProcessing": "Efterbehandling",
     "history": "Historik",
     "debug": "Fejlfinding",
-    "about": "Om"
+    "about": "Om",
+    "transcribe": "Transcribe"
   },
   "onboarding": {
     "subtitle": "For at komme i gang skal du vælge en transskriptionsmodel",
@@ -144,6 +146,11 @@
     "downloadSpeed": "{{speed}} MB/s",
     "cancel": "Annuller",
     "cancelDownload": "Annuller download",
+    "loaded": "Indlæst",
+    "loadedCount": "{{count}} indlæst",
+    "unload": "Fjern",
+    "unloadTooltip": "Fjern model fra hukommelsen",
+    "builtIn": "Indbygget",
     "capabilities": {
       "languageSelection": "Understøtter flere inputsprog",
       "singleLanguage": "Understøtter kun dette sprog",
@@ -152,7 +159,8 @@
       "translation": "Kan oversætte til engelsk",
       "translate": "Oversæt",
       "streaming": "Viser live transskription, mens du taler"
-    }
+    },
+    "loadedModels": "Loaded models"
   },
   "settings": {
     "modelSettings": {
@@ -215,7 +223,17 @@
         "label": "Søg igen",
         "tooltip": "Søg igen efter modeller, der er tilføjet til modelmappen eller Hugging Face-cachen uden for Handy"
       },
-      "noModelsMatch": "Ingen modeller matcher dette filter."
+      "noModelsMatch": "Ingen modeller matcher dette filter.",
+      "loadedHint": "Klik for at skifte øjeblikkeligt",
+      "multiModel": {
+        "title": "Indlæs flere modeller på én gang",
+        "description": "Hold flere modeller i hukommelsen, så du kan skifte øjeblikkeligt og sammenligne transskriptioner. Bruger mere RAM."
+      },
+      "osSpeech": {
+        "authRequired": "Der kræves tilladelse til at bruge enhedens talegenkendelse",
+        "grantPermission": "Giv tilladelse",
+        "retry": "Prøv igen"
+      }
     },
     "sound": {
       "title": "Lyd",
@@ -368,6 +386,35 @@
       "voiceActivityDetection": {
         "title": "Stemmeaktivitetsdetektion",
         "description": "Filtrer stilhed fra optagelser. Streaming-modeller bruger en længere VAD-hale; deaktivering af VAD optager rå lyd."
+      },
+      "customWordDatasets": {
+        "title": "Word Datasets",
+        "description": "Term lists that improve recognition of names and specialized terms. Toggle a dataset on to feed its terms to the model; every transcription is also fuzzy-corrected against enabled terms.",
+        "activeWords_one": "{{count}} word active",
+        "activeWords_other": "{{count}} words active",
+        "builtinBadge": "Built-in",
+        "words_one": "{{count}} word",
+        "words_other": "{{count}} words",
+        "expanded": "Show words",
+        "collapsed": "Hide words",
+        "toggle": "Toggle dataset",
+        "readOnlyHint": "Built-in datasets are read-only. Toggle them on or off.",
+        "addWordPlaceholder": "Add a term",
+        "add": "Add",
+        "removeWord": "Remove {{word}}",
+        "duplicateWord": "\"{{word}}\" already exists in this dataset",
+        "newDatasetPlaceholder": "Dataset name",
+        "create": "Create",
+        "deleteDataset": "Delete dataset",
+        "deleteConfirm": "Delete \"{{name}}\"? This cannot be undone.",
+        "rename": "Rename",
+        "importButton": "Import .txt",
+        "importSuccess": "Imported \"{{name}}\" with {{count}} words",
+        "importFailed": "Import failed: {{error}}",
+        "export": "Export",
+        "exportSuccess": "Exported \"{{name}}\"",
+        "exportFailed": "Export failed: {{error}}",
+        "emptyList": "No datasets yet. Create your own or import a .txt file with one term per line."
       }
     },
     "postProcessing": {
@@ -561,6 +608,22 @@
         "failed": "Diagnostik mislykkedes: {{error}}"
       }
     },
+    "appearance": {
+      "title": "Udseende",
+      "description": "Tilpas Handys udseende",
+      "accent": {
+        "title": "Accentfarve",
+        "description": "Vælg den fremhævningsfarve, der bruges i hele appen",
+        "options": {
+          "pink": "Lyserød",
+          "orange": "Orange",
+          "purple": "Lilla",
+          "green": "Grøn",
+          "blue": "Blå",
+          "red": "Rød"
+        }
+      }
+    },
     "about": {
       "title": "Om",
       "version": {
@@ -608,7 +671,13 @@
     "portableUpdateMessage": "Flytbare installationer kan ikke opdateres automatisk. Download installeren til dit system nedenfor, kør den, og installer i den samme mappe — din Data/-mappe (indstillinger, modeller, optagelser) bliver bevaret.",
     "portableUpdateButton": "Download installer",
     "portableUpdateBrowseMessage": "Flytbare installationer kan ikke opdateres automatisk. Download den nyeste version til dit system fra GitHub Releases, og installer den i den samme mappe — din Data/-mappe (indstillinger, modeller, optagelser) bliver bevaret.",
-    "portableUpdateBrowseButton": "Åbn GitHub Releases"
+    "portableUpdateBrowseButton": "Åbn GitHub Releases",
+    "harper": {
+      "label": "Spell check",
+      "ready": "Grammar & spelling engine ready",
+      "initializing": "Initializing grammar & spelling engine…",
+      "disabled": "Spell check disabled"
+    }
   },
   "whatsNew": {
     "title": "Nyt i Handy v{{version}}"
@@ -671,5 +740,22 @@
     "learnMore": "Sådan løser du det",
     "recorderBlocked": "Genveje kan ikke optages lige nu — macOS Secure Input blokerer tastehændelser. Løs advarslen om Secure Input først.",
     "dismiss": "Afvis"
+  },
+  "dictation": {
+    "title": "Transcribe",
+    "description": "Type a prompt or dictate with the active speech-to-text model.",
+    "placeholder": "Type here or press the mic to dictate…",
+    "startRecording": "Start dictation",
+    "stopRecording": "Stop dictation",
+    "recording": "Recording…",
+    "transcribing": "Transcribing…",
+    "noModel": "No transcription model selected",
+    "noModelDescription": "Choose or download a model in the Models tab, or use the device's built-in speech recognition — no download needed.",
+    "useOnDevice": "Use device speech recognition",
+    "micError": "Couldn't start recording: {{error}}",
+    "empty": "No speech detected.",
+    "copied": "Copied to clipboard",
+    "spellCheck": "Spell check",
+    "cancel": "Cancel"
   }
 }

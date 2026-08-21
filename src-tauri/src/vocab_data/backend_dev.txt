@@ -1,0 +1,153 @@
+# source: https://docs.python.org/3/glossary.html https://nodejs.org/en/learn https://go.dev/doc/effective_go https://docs.djangoproject.com/en/5.2/glossary/ https://kubernetes.io/docs/reference/glossary/ https://docs.ansible.com/ansible/latest/reference_appendices/glossary.html
+
+abstract base class
+annotation
+API
+argument
+artifact
+async
+asyncio
+atomic operation
+await
+awaitable
+BDFL
+buffer
+bytecode
+caching
+callback
+channel
+class variable
+CLI
+client-server
+closure
+compiler
+concurrency
+concurrent
+constructor
+context manager
+context variable
+coroutine
+CPython
+CRUD
+daemon
+data race
+deadlock
+decorator
+dependency injection
+descriptor
+Django
+doc comment
+docstring
+duck-typing
+dunder
+EAFP
+endpoint
+event loop
+event-driven
+exception
+extension module
+f-string
+FastAPI
+field
+free threading
+garbage collection
+garbage collector
+generator
+generic function
+generic type
+GIL
+GitHub
+global interpreter lock
+gofmt
+goroutine
+GraphQL
+gRPC
+handler
+hashable
+HTTP
+HTTPS
+idempotent
+immutable
+import path
+interface
+interpreter
+iterable
+iterator
+JSON
+JSON Web Token
+JWT
+keyword argument
+lambda
+LBYL
+libuv
+lock
+magic method
+mapping
+metaclass
+method resolution order
+microservices
+middleware
+module
+MRO
+MTV
+multithreaded
+mutable
+mutex
+MVC
+named tuple
+namespace
+namespace package
+non-blocking
+open source
+package
+parameter
+PEP
+pointer
+positional argument
+property
+Pythonic
+queryset
+queue
+race condition
+rate limiting
+reentrant
+reference count
+reference cycle
+remote procedure call
+REPL
+REST API
+RESTful
+RPC
+runtime
+sandbox
+serialization
+session
+single-threaded
+slice
+slug
+socket
+standard library
+stateless
+static type checker
+stream
+synchronization primitive
+template
+thread-safe
+throttling
+token
+triple-quoted string
+tuple
+type alias
+type hint
+V8
+version control
+virtual environment
+virtual machine
+walrus operator
+web framework
+web server
+webhook
+WebSocket
+worker pool
+worker thread
+Zen of Python

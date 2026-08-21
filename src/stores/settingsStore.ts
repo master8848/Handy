@@ -2,8 +2,11 @@ import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import { listen } from "@tauri-apps/api/event";
 import type {
+  AccentColor,
   AppSettings as Settings,
   AudioDevice,
+  CustomWordDataset,
+  TextReplacement,
   TranscribeAcceleratorSetting,
   OrtAcceleratorSetting,
 } from "@/bindings";
@@ -119,6 +122,10 @@ const settingUpdaters: {
     commands.changeOverlayPositionSetting(value as string),
   debug_mode: (value) => commands.changeDebugModeSetting(value as boolean),
   custom_words: (value) => commands.updateCustomWords(value as string[]),
+  custom_word_datasets: (value) =>
+    commands.updateCustomWordDatasets(value as CustomWordDataset[]),
+  text_replacements: (value) =>
+    commands.updateTextReplacements(value as TextReplacement[]),
   word_correction_threshold: (value) =>
     commands.changeWordCorrectionThresholdSetting(value as number),
   paste_delay_ms: (value) =>
@@ -143,17 +150,23 @@ const settingUpdaters: {
     commands.setPostProcessSelectedPrompt(value as string),
   mute_while_recording: (value) =>
     commands.changeMuteWhileRecordingSetting(value as boolean),
+  multi_model_loading: (value) =>
+    commands.setMultiModelLoading(value as boolean),
   append_trailing_space: (value) =>
     commands.changeAppendTrailingSpaceSetting(value as boolean),
   log_level: (value) => commands.setLogLevel(value as any),
   app_language: (value) => commands.changeAppLanguageSetting(value as string),
   theme: (value) => commands.changeThemeSetting(value as string),
+  accent_color: (value) =>
+    commands.changeAccentColorSetting(value as AccentColor),
   experimental_enabled: (value) =>
     commands.changeExperimentalEnabledSetting(value as boolean),
   lazy_stream_close: (value) =>
     commands.changeLazyStreamCloseSetting(value as boolean),
   overlay_style: (value) => commands.changeOverlayStyleSetting(value as string),
   vad_enabled: (value) => commands.changeVadEnabledSetting(value as boolean),
+  spell_check_enabled: (value) =>
+    commands.changeSpellCheckEnabledSetting(value as boolean),
   show_tray_icon: (value) =>
     commands.changeShowTrayIconSetting(value as boolean),
   transcribe_accelerator: (value) =>

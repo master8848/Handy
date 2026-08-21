@@ -11,12 +11,14 @@
   },
   "sidebar": {
     "general": "Général",
+    "appearance": "Apparence",
     "models": "Modèles",
     "advanced": "Avancé",
     "postProcessing": "Post-traitement",
     "history": "Historique",
     "debug": "Débogage",
-    "about": "À propos"
+    "about": "À propos",
+    "transcribe": "Transcribe"
   },
   "onboarding": {
     "subtitle": "Pour commencer, choisissez un modèle de transcription",
@@ -152,7 +154,13 @@
     },
     "cancel": "Annuler",
     "cancelDownload": "Annuler le téléchargement",
-    "legacy": "Hérité"
+    "loaded": "Chargé",
+    "loadedCount": "{{count}} chargés",
+    "unload": "Décharger",
+    "unloadTooltip": "Décharger le modèle de la mémoire",
+    "builtIn": "Intégré",
+    "legacy": "Hérité",
+    "loadedModels": "Loaded models"
   },
   "settings": {
     "modelSettings": {
@@ -168,6 +176,16 @@
         "allLanguages": "Toutes les langues"
       },
       "noModelsMatch": "Aucun modèle ne correspond à ce filtre.",
+      "loadedHint": "Cliquez pour changer instantanément",
+      "multiModel": {
+        "title": "Charger plusieurs modèles à la fois",
+        "description": "Gardez plusieurs modèles en mémoire pour changer instantanément et comparer les transcriptions. Utilise plus de RAM."
+      },
+      "osSpeech": {
+        "authRequired": "Autorisation requise pour utiliser la reconnaissance vocale de l'appareil",
+        "grantPermission": "Accorder l'autorisation",
+        "retry": "Réessayer"
+      },
       "yourModels": "Modèles téléchargés",
       "availableModels": "Disponibles au téléchargement",
       "searchPlaceholder": "Rechercher des modèles par nom…",
@@ -368,6 +386,35 @@
       "voiceActivityDetection": {
         "title": "Détection d'activité vocale (VAD)",
         "description": "Filtre le silence des enregistrements. Les modèles compatibles avec le streaming utilisent une marge de détection VAD plus longue ; désactiver le VAD enregistre l'audio brut."
+      },
+      "customWordDatasets": {
+        "title": "Word Datasets",
+        "description": "Term lists that improve recognition of names and specialized terms. Toggle a dataset on to feed its terms to the model; every transcription is also fuzzy-corrected against enabled terms.",
+        "activeWords_one": "{{count}} word active",
+        "activeWords_other": "{{count}} words active",
+        "builtinBadge": "Built-in",
+        "words_one": "{{count}} word",
+        "words_other": "{{count}} words",
+        "expanded": "Show words",
+        "collapsed": "Hide words",
+        "toggle": "Toggle dataset",
+        "readOnlyHint": "Built-in datasets are read-only. Toggle them on or off.",
+        "addWordPlaceholder": "Add a term",
+        "add": "Add",
+        "removeWord": "Remove {{word}}",
+        "duplicateWord": "\"{{word}}\" already exists in this dataset",
+        "newDatasetPlaceholder": "Dataset name",
+        "create": "Create",
+        "deleteDataset": "Delete dataset",
+        "deleteConfirm": "Delete \"{{name}}\"? This cannot be undone.",
+        "rename": "Rename",
+        "importButton": "Import .txt",
+        "importSuccess": "Imported \"{{name}}\" with {{count}} words",
+        "importFailed": "Import failed: {{error}}",
+        "export": "Export",
+        "exportSuccess": "Exported \"{{name}}\"",
+        "exportFailed": "Export failed: {{error}}",
+        "emptyList": "No datasets yet. Create your own or import a .txt file with one term per line."
       }
     },
     "postProcessing": {
@@ -561,6 +608,22 @@
         "error": "Impossible d’afficher l’aperçu des notes de version"
       }
     },
+    "appearance": {
+      "title": "Apparence",
+      "description": "Personnalisez l'apparence de Handy",
+      "accent": {
+        "title": "Couleur d'accent",
+        "description": "Choisissez la couleur de surbrillance utilisée dans toute l'application",
+        "options": {
+          "pink": "Rose",
+          "orange": "Orange",
+          "purple": "Violet",
+          "green": "Vert",
+          "blue": "Bleu",
+          "red": "Rouge"
+        }
+      }
+    },
     "about": {
       "title": "À propos",
       "version": {
@@ -608,7 +671,13 @@
     "portableUpdateMessage": "Les installations portables ne peuvent pas être mises à jour automatiquement. Téléchargez ci-dessous l’installateur correspondant à votre système, exécutez-le et installez-le dans le même dossier : votre dossier Data/ (paramètres, modèles, enregistrements) est conservé.",
     "portableUpdateButton": "Télécharger l’installateur",
     "portableUpdateBrowseMessage": "Les installations portables ne peuvent pas être mises à jour automatiquement. Téléchargez la dernière version correspondant à votre système depuis GitHub Releases et installez-la dans le même dossier : votre dossier Data/ (paramètres, modèles, enregistrements) est conservé.",
-    "portableUpdateBrowseButton": "Ouvrir GitHub Releases"
+    "portableUpdateBrowseButton": "Ouvrir GitHub Releases",
+    "harper": {
+      "label": "Spell check",
+      "ready": "Grammar & spelling engine ready",
+      "initializing": "Initializing grammar & spelling engine…",
+      "disabled": "Spell check disabled"
+    }
   },
   "common": {
     "loading": "Chargement...",
@@ -671,5 +740,22 @@
     "learnMore": "Comment résoudre ce problème",
     "recorderBlocked": "Impossible d'enregistrer un raccourci pour le moment : Secure Input de macOS bloque les événements clavier. Résolvez d'abord l'avertissement Secure Input.",
     "dismiss": "Ignorer"
+  },
+  "dictation": {
+    "title": "Transcribe",
+    "description": "Type a prompt or dictate with the active speech-to-text model.",
+    "placeholder": "Type here or press the mic to dictate…",
+    "startRecording": "Start dictation",
+    "stopRecording": "Stop dictation",
+    "recording": "Recording…",
+    "transcribing": "Transcribing…",
+    "noModel": "No transcription model selected",
+    "noModelDescription": "Choose or download a model in the Models tab, or use the device's built-in speech recognition — no download needed.",
+    "useOnDevice": "Use device speech recognition",
+    "micError": "Couldn't start recording: {{error}}",
+    "empty": "No speech detected.",
+    "copied": "Copied to clipboard",
+    "spellCheck": "Spell check",
+    "cancel": "Cancel"
   }
 }

@@ -22,10 +22,13 @@ import { getLanguageDirection, initializeRTL } from "@/lib/utils/rtl";
 
 type OnboardingStep = "accessibility" | "model" | "done";
 
-const renderSettingsContent = (section: SidebarSection) => {
+const renderSettingsContent = (
+  section: SidebarSection,
+  onNavigate: (section: SidebarSection) => void,
+) => {
   const ActiveComponent =
     SECTIONS_CONFIG[section]?.component || SECTIONS_CONFIG.general.component;
-  return <ActiveComponent />;
+  return <ActiveComponent onNavigate={onNavigate} />;
 };
 
 function App() {
@@ -36,8 +39,7 @@ function App() {
   // Track if this is a returning user who just needs to grant permissions
   // (vs a new user who needs full onboarding including model selection)
   const [isReturningUser, setIsReturningUser] = useState(false);
-  const [currentSection, setCurrentSection] =
-    useState<SidebarSection>("general");
+  const [currentSection, setCurrentSection] = useState<SidebarSection>("home");
   const { settings, updateSetting } = useSettings();
   const direction = getLanguageDirection(i18n.language);
   const refreshAudioDevices = useSettingsStore(
@@ -255,9 +257,11 @@ function App() {
   // its position in the tree doesn't affect layout. Without this, errors during
   // onboarding (e.g. a model download failing because blob.handy.computer is
   // unreachable) are silently swallowed and the wizard just appears to "blink".
+  // The theme follows the applied theme setting (App re-renders on settings
+  // change); `system` lets sonner follow the OS like the rest of the UI.
   const toaster = (
     <Toaster
-      theme="system"
+      theme={settings?.theme ?? "system"}
       toastOptions={{
         unstyled: true,
         classNames: {
@@ -306,7 +310,7 @@ function App() {
               <div className="flex flex-col items-center p-4 gap-4">
                 <AccessibilityPermissions />
                 <SecureInputWarning />
-                {renderSettingsContent(currentSection)}
+                {renderSettingsContent(currentSection, setCurrentSection)}
               </div>
             </div>
           </div>

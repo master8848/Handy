@@ -6,6 +6,10 @@ export { HistorySettings } from "./history/HistorySettings";
 export { AboutSettings } from "./about/AboutSettings";
 export { PostProcessingSettings } from "./post-processing/PostProcessingSettings";
 export { ModelsSettings } from "./models/ModelsSettings";
+export { AppearanceSettings } from "./appearance/AppearanceSettings";
+export { DictationBox } from "./dictation/DictationBox";
+export { Home } from "./home/Home";
+export { PromptHistory } from "./home/PromptHistory";
 
 // Individual setting components
 export { MicrophoneSelector } from "./MicrophoneSelector";
@@ -19,7 +23,7 @@ export { GlobalShortcutInput } from "./GlobalShortcutInput";
 export { HandyKeysShortcutInput } from "./HandyKeysShortcutInput";
 export { ShortcutInput } from "./ShortcutInput";
 export { TranslateToEnglish } from "./TranslateToEnglish";
-export { CustomWords } from "./CustomWords";
+export { CustomWordDatasets } from "./advanced/CustomWordDatasets";
 export { PostProcessingToggle } from "./PostProcessingToggle";
 export { PostProcessingSettingsApi } from "./PostProcessingSettingsApi";
 export { PostProcessingSettingsPrompts } from "./PostProcessingSettingsPrompts";

@@ -11,12 +11,14 @@
   },
   "sidebar": {
     "general": "일반",
+    "appearance": "모양",
     "models": "모델",
     "advanced": "고급",
     "postProcessing": "후처리",
     "history": "히스토리",
     "debug": "디버그",
-    "about": "정보"
+    "about": "정보",
+    "transcribe": "Transcribe"
   },
   "onboarding": {
     "subtitle": "시작하려면 음성 인식 모델을 선택하세요",
@@ -143,6 +145,11 @@
     "downloadSpeed": "{{speed}} MB/s",
     "cancel": "취소",
     "cancelDownload": "다운로드 취소",
+    "loaded": "로드됨",
+    "loadedCount": "{{count}}개 로드됨",
+    "unload": "언로드",
+    "unloadTooltip": "메모리에서 모델 언로드",
+    "builtIn": "내장",
     "capabilities": {
       "languageSelection": "여러 입력 언어를 지원합니다",
       "singleLanguage": "이 언어만 지원합니다",
@@ -152,7 +159,8 @@
       "translate": "영어로 번역",
       "streaming": "말하는 동안 실시간으로 음성 인식 결과를 표시"
     },
-    "legacy": "레거시"
+    "legacy": "레거시",
+    "loadedModels": "Loaded models"
   },
   "settings": {
     "modelSettings": {
@@ -234,6 +242,16 @@
         "allLanguages": "모든 언어"
       },
       "noModelsMatch": "이 필터에 맞는 모델이 없습니다.",
+      "loadedHint": "클릭하여 즉시 전환",
+      "multiModel": {
+        "title": "여러 모델을 한 번에 로드",
+        "description": "여러 모델을 메모리에 유지하여 즉시 전환하고 받아쓰기를 비교할 수 있습니다. 더 많은 RAM을 사용합니다."
+      },
+      "osSpeech": {
+        "authRequired": "기기 음성 인식을 사용하려면 권한이 필요합니다",
+        "grantPermission": "권한 부여",
+        "retry": "다시 시도"
+      },
       "searchPlaceholder": "이름으로 모델 검색…",
       "rescan": {
         "label": "다시 스캔",
@@ -368,6 +386,35 @@
       "voiceActivityDetection": {
         "title": "음성 활동 감지",
         "description": "녹음에서 무음 구간을 걸러냅니다. 스트리밍 지원 모델은 더 긴 VAD 테일을 사용하며, VAD를 끄면 원본 오디오가 그대로 녹음됩니다."
+      },
+      "customWordDatasets": {
+        "title": "Word Datasets",
+        "description": "Term lists that improve recognition of names and specialized terms. Toggle a dataset on to feed its terms to the model; every transcription is also fuzzy-corrected against enabled terms.",
+        "activeWords_one": "{{count}} word active",
+        "activeWords_other": "{{count}} words active",
+        "builtinBadge": "Built-in",
+        "words_one": "{{count}} word",
+        "words_other": "{{count}} words",
+        "expanded": "Show words",
+        "collapsed": "Hide words",
+        "toggle": "Toggle dataset",
+        "readOnlyHint": "Built-in datasets are read-only. Toggle them on or off.",
+        "addWordPlaceholder": "Add a term",
+        "add": "Add",
+        "removeWord": "Remove {{word}}",
+        "duplicateWord": "\"{{word}}\" already exists in this dataset",
+        "newDatasetPlaceholder": "Dataset name",
+        "create": "Create",
+        "deleteDataset": "Delete dataset",
+        "deleteConfirm": "Delete \"{{name}}\"? This cannot be undone.",
+        "rename": "Rename",
+        "importButton": "Import .txt",
+        "importSuccess": "Imported \"{{name}}\" with {{count}} words",
+        "importFailed": "Import failed: {{error}}",
+        "export": "Export",
+        "exportSuccess": "Exported \"{{name}}\"",
+        "exportFailed": "Export failed: {{error}}",
+        "emptyList": "No datasets yet. Create your own or import a .txt file with one term per line."
       }
     },
     "postProcessing": {
@@ -561,6 +608,22 @@
         "error": "릴리스 노트를 미리 볼 수 없습니다"
       }
     },
+    "appearance": {
+      "title": "모양",
+      "description": "Handy의 모양을 사용자 지정하세요",
+      "accent": {
+        "title": "강조 색상",
+        "description": "앱 전체에서 사용되는 강조 색상을 선택하세요",
+        "options": {
+          "pink": "핑크",
+          "orange": "오렌지",
+          "purple": "퍼플",
+          "green": "그린",
+          "blue": "블루",
+          "red": "레드"
+        }
+      }
+    },
     "about": {
       "title": "정보",
       "version": {
@@ -608,7 +671,13 @@
     "portableUpdateMessage": "포터블 설치는 자동으로 업데이트할 수 없습니다. 아래에서 사용 중인 시스템에 맞는 설치 프로그램을 다운로드해 실행하고 같은 폴더에 설치하세요. Data/ 폴더(설정, 모델, 녹음)는 그대로 유지됩니다.",
     "portableUpdateButton": "설치 프로그램 다운로드",
     "portableUpdateBrowseMessage": "포터블 설치는 자동으로 업데이트할 수 없습니다. GitHub Releases에서 사용 중인 시스템에 맞는 최신 버전을 다운로드해 같은 폴더에 설치하세요. Data/ 폴더(설정, 모델, 녹음)는 그대로 유지됩니다.",
-    "portableUpdateBrowseButton": "GitHub Releases 열기"
+    "portableUpdateBrowseButton": "GitHub Releases 열기",
+    "harper": {
+      "label": "Spell check",
+      "ready": "Grammar & spelling engine ready",
+      "initializing": "Initializing grammar & spelling engine…",
+      "disabled": "Spell check disabled"
+    }
   },
   "common": {
     "loading": "로딩 중...",
@@ -671,5 +740,22 @@
     "learnMore": "해결 방법",
     "recorderBlocked": "지금은 단축키를 등록할 수 없습니다. macOS Secure Input이 키 이벤트를 차단하고 있습니다. Secure Input 경고를 먼저 해결하세요.",
     "dismiss": "닫기"
+  },
+  "dictation": {
+    "title": "Transcribe",
+    "description": "Type a prompt or dictate with the active speech-to-text model.",
+    "placeholder": "Type here or press the mic to dictate…",
+    "startRecording": "Start dictation",
+    "stopRecording": "Stop dictation",
+    "recording": "Recording…",
+    "transcribing": "Transcribing…",
+    "noModel": "No transcription model selected",
+    "noModelDescription": "Choose or download a model in the Models tab, or use the device's built-in speech recognition — no download needed.",
+    "useOnDevice": "Use device speech recognition",
+    "micError": "Couldn't start recording: {{error}}",
+    "empty": "No speech detected.",
+    "copied": "Copied to clipboard",
+    "spellCheck": "Spell check",
+    "cancel": "Cancel"
   }
 }

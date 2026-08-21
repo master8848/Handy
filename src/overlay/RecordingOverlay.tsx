@@ -1,9 +1,16 @@
 import { listen } from "@tauri-apps/api/event";
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import "./RecordingOverlay.css";
 import { commands, events } from "@/bindings";
 import type {
+  SpellingIssue,
   StreamPhase,
   StreamPhaseEvent,
   StreamTextEvent,
@@ -17,6 +24,10 @@ type OverlayState = "recording" | "streaming" | "transcribing" | "processing";
 // Number of reactive bars in the waveform (the simple, smoothed style shared by
 // every overlay form). Mic levels arrive as 16 FFT buckets; we take the first N.
 const WAVE_BARS = 9;
+
+// Quiet period before the offline spell-checker runs on the committed text —
+// long enough to avoid firing per-chunk mid-speech, short enough to keep up.
+const SPELL_CHECK_DEBOUNCE_MS = 300;
 
 const RecordingOverlay: React.FC = () => {
   const { t } = useTranslation();
@@ -39,6 +50,8 @@ const RecordingOverlay: React.FC = () => {
   // True once live text overflows the cap. A top overlay fades its top edge only
   // while overflowing, so the resting first line stays crisp flush under the pill.
   const [overflowing, setOverflowing] = useState(false);
+  // Spell/grammar issues on the committed text, rendered as wavy underlines.
+  const [issues, setIssues] = useState<SpellingIssue[]>([]);
 
   const smoothedLevelsRef = useRef<number[]>(Array(16).fill(0));
   // Live-text scroll-back: the text region "sticks" to the newest line while the
@@ -46,6 +59,11 @@ const RecordingOverlay: React.FC = () => {
   // until they scroll back down.
   const capRef = useRef<HTMLDivElement>(null);
   const pinnedRef = useRef(true);
+  // Spell-check scheduling: pending debounce timer + a sequence counter bumped on
+  // every reschedule/clear so a slow in-flight response can never paint stale
+  // underlines over newer text.
+  const debounceRef = useRef<number | null>(null);
+  const checkSeqRef = useRef(0);
   const direction = getLanguageDirection(i18n.language);
 
   useEffect(() => {
@@ -138,6 +156,76 @@ const RecordingOverlay: React.FC = () => {
     pinnedRef.current = true;
     setOverflowing(false);
   }, [session]);
+
+  // Debounced spell-check of the committed transcript. Runs only while the live
+  // overlay is up; the timer is cleared on every committed update so the checker
+  // sees 300 ms of quiet text, and a stale-response guard drops results that
+  // outlive their text (edits, hide, or a newer check all bump the sequence).
+  useEffect(() => {
+    if (debounceRef.current) {
+      window.clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+    const live = state === "streaming" || state === "transcribing";
+    const committed = streamText.committed;
+    if (!isVisible || !live || !committed) {
+      checkSeqRef.current += 1; // invalidate any in-flight check
+      setIssues([]);
+      return;
+    }
+    const seq = ++checkSeqRef.current;
+    debounceRef.current = window.setTimeout(() => {
+      debounceRef.current = null;
+      commands
+        .checkSpelling(committed)
+        .then((res) => {
+          if (checkSeqRef.current !== seq) return; // stale: text moved on
+          if (res.status === "ok") {
+            setIssues(res.data.filter((i) => i.start < committed.length));
+          }
+        })
+        .catch(() => {
+          // A failed check isn't worth surfacing in the overlay; keep the
+          // underlines already on screen.
+        });
+    }, SPELL_CHECK_DEBOUNCE_MS);
+    return () => {
+      if (debounceRef.current) {
+        window.clearTimeout(debounceRef.current);
+        debounceRef.current = null;
+      }
+    };
+  }, [streamText.committed, state, isVisible]);
+
+  // Committed text split into plain runs and issue spans. Issues are sorted by
+  // start and walked with a cursor, slicing the text at UTF-16 offsets (JS
+  // strings index by code unit, so spans line up exactly). Nested/overlapping
+  // issues are skipped, and spans past the committed end are dropped — the text
+  // only grows, but defensively handle a shrink too. Built as React elements
+  // (never innerHTML), so checker output has no XSS surface.
+  const committedNodes = useMemo(() => {
+    const committed = streamText.committed;
+    if (!committed) return null;
+    const sorted = issues
+      .filter((i) => i.start < committed.length && i.end <= committed.length)
+      .sort((a, b) => a.start - b.start);
+    const nodes: React.ReactNode[] = [];
+    let cursor = 0;
+    for (const issue of sorted) {
+      if (issue.end <= cursor) continue; // nested inside an earlier span
+      if (issue.start > cursor) {
+        nodes.push(committed.slice(cursor, issue.start));
+      }
+      nodes.push(
+        <span key={`${issue.start}-${issue.end}`} className="spell-issue">
+          {committed.slice(issue.start, issue.end)}
+        </span>,
+      );
+      cursor = issue.end;
+    }
+    if (cursor < committed.length) nodes.push(committed.slice(cursor));
+    return nodes;
+  }, [streamText.committed, issues]);
 
   if (!isVisible) return null;
 
@@ -238,7 +326,8 @@ const RecordingOverlay: React.FC = () => {
               >
                 <p>
                   <span className="committed">
-                    {streamText.committed ? streamText.committed + " " : ""}
+                    {committedNodes}
+                    {streamText.committed ? " " : ""}
                   </span>
                   <span className="tentative">{streamText.tentative}</span>
                   {/* Drop the blinking caret once finalizing — it's no longer

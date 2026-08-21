@@ -1,0 +1,153 @@
+# source: https://docs.github.com/en/get-started/learning-about-github/github-glossary https://git-scm.com/docs/gitglossary
+
+Access token
+Assignee
+Bare repository
+Base branch
+Blame
+Blob object
+Branch
+branch restriction
+Changeset
+Checkout
+Cherry-pick
+CircleCI
+Clean
+Clone
+code of conduct
+Code owner
+Collaborator
+Commit
+Commit author
+Commit graph
+Commit message
+Commit object
+Compare branch
+Continuous integration
+contribution guidelines
+Contributor
+cron
+DAG
+Dangling object
+Datadog
+Default branch
+Dependency graph
+Deploy key
+Detached HEAD
+Diff
+Dirty
+Evil merge
+Fast forward
+Feature branch
+Fenced code block
+Fetch
+Figma
+Force push
+Fork
+Gist
+Git
+Git LFS
+GitHub
+GitHub Actions
+GitHub App
+GitHub Flavored Markdown
+GitHub Marketplace
+GitHub Pages
+GitHub Wiki
+GitLab
+GraphQL
+HEAD
+Head branch
+high-availability
+Hook
+Identicon
+Identity provider
+Index
+Issue
+Issue tracker
+Jekyll
+Jenkins
+Jira
+Key fingerprint
+Label
+License
+Line comment
+Line ending
+Linear
+Main
+Markdown
+Master
+Merge
+Merge conflict
+Milestone
+mirror
+Netlify
+network graph
+Non-fast-forward
+Notion
+OAuth
+OAuth app
+OAuth token
+Object database
+Object name
+Octopus
+Organization
+Origin
+Orphan
+Outside collaborator
+Pack
+Pathspec
+Permalink
+Pickaxe
+Plumbing
+Porcelain
+Pre-receive hooks
+Private repository
+Production branch
+Project board
+Protected branch
+Public repository
+Pull
+Pull request
+Pull request review
+Push
+README
+Rebase
+Ref
+Reflog
+Refspec
+Release
+Remote
+Remote repository
+Remote tracking branch
+Repository
+Repository maintainer
+Required pull request review
+Required status check
+Revert
+Revision
+SCM
+Sentry
+SHA-1
+Shallow clone
+Shallow repository
+Single sign on
+Slack
+Squash
+SSH key
+Stash
+Status check
+Submodule
+Superproject
+Tag
+Tag object
+Topic branch
+Trailer
+Tree object
+Unmerged index
+Upstream
+Upstream branch
+Vercel
+Webhook
+Working tree
+Worktree

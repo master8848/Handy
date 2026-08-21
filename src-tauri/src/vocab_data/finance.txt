@@ -1,0 +1,197 @@
+# source: https://www.investopedia.com/financial-term-dictionary-4769738, https://www.investor.gov/additional-resources/general-resources/glossary
+
+401k
+529 plan
+accounting equation
+acid-test ratio
+acquisition
+after-hours trading
+amortization
+angel investor
+annual percentage rate
+annuity
+APR
+APY
+arbitrage
+asset allocation
+balance sheet
+bankruptcy
+basis point
+bear market
+bond
+break-even analysis
+brokerage account
+budget deficit
+bull market
+business cycle
+call option
+capital asset pricing model
+capital expenditure
+capital gains
+cash flow
+certificate of deposit
+collateral
+compound interest
+consumer price index
+contribution margin
+corporate governance
+cost of goods sold
+CPI
+credit default swap
+credit score
+current ratio
+day trading
+debt-to-equity ratio
+deflation
+depreciation
+derivative
+dilution
+discount rate
+diversification
+dividend
+dividend payout ratio
+dividend yield
+dollar cost averaging
+Dow Jones Industrial Average
+due diligence
+earnings per share
+EBIT
+EBITDA
+economies of scale
+equity
+escrow
+ETF
+exchange rate
+exchange-traded fund
+expense ratio
+FDIC
+federal funds rate
+FHA
+fiat money
+FICO
+fiduciary
+FINRA
+fiscal policy
+fixed income
+foreclosure
+futures contract
+GAAP
+GDP
+GDPR
+general ledger
+goodwill
+gross domestic product
+gross margin
+gross profit margin
+hedge fund
+home equity loan
+hostile takeover
+HSA
+hyperinflation
+income statement
+index fund
+inflation
+initial public offering
+insider trading
+interest rate
+internal rate of return
+inventory turnover
+inverted yield curve
+investment adviser
+IPO
+IRA
+IRS
+junk bond
+leverage
+leveraged buyout
+liability
+line of credit
+liquidity
+loan-to-value ratio
+margin call
+market capitalization
+market maker
+market share
+mergers and acquisitions
+monetary policy
+money laundering
+money market account
+mortgage
+mortgage-backed security
+municipal bond
+mutual fund
+Nasdaq
+net asset value
+net income
+net operating income
+net present value
+net profit margin
+net worth
+New York Stock Exchange
+NYSE
+opportunity cost
+over-the-counter
+overdraft
+penny stock
+pension
+Ponzi scheme
+portfolio
+preferred stock
+present value
+price-to-earnings ratio
+principal
+producer price index
+profit margin
+promissory note
+prospectus
+proxy statement
+put option
+quantitative easing
+rate of return
+real estate
+real estate investment trust
+recession
+refinancing
+REIT
+retained earnings
+return on assets
+return on equity
+return on investment
+revenue
+revenue recognition
+risk tolerance
+Roth IRA
+Rule of 72
+Sarbanes-Oxley
+SEC
+securities
+security
+Sharpe ratio
+short selling
+solvency
+SPAC
+stagflation
+standard deviation
+stock option
+stock split
+tariff
+tender offer
+TIPS
+treasury bill
+trust fund
+trustee
+underwriter
+underwriting
+unemployment rate
+VA loan
+venture capital
+venture capitalist
+volatility
+Wall Street
+warrant
+wash sale
+working capital
+yield
+yield curve
+yield to maturity
+zero-coupon bond

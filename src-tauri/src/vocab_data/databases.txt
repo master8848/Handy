@@ -1,0 +1,174 @@
+# source: https://www.mongodb.com/docs/manual/reference/glossary/ https://www.postgresql.org/docs/current/glossary.html https://redis.io/docs/latest/develop/data-types/ https://docs.aws.amazon.com/glossary/latest/reference/glos-chap.html
+
+ACID
+aggregate function
+aggregation
+aggregation pipeline
+analyze
+AOF
+append-only file
+arbiter
+atomicity
+autovacuum
+B-tree
+balancer
+base backup
+bitfield
+bitmap
+bloat
+Bloom filter
+BSON
+CAP theorem
+cardinality
+Cassandra
+cast
+catalog
+causal consistency
+change stream
+check constraint
+checkpoint
+chunk
+collation
+collection
+commit
+compound index
+concurrency
+connection pool
+consistency
+constraint
+count-min sketch
+CRUD
+Cuckoo filter
+cursor
+data directory
+data lake
+data modeling
+data warehouse
+dead letter queue
+delayed member
+denormalization
+distributed transaction
+document
+domain
+durability
+durable
+DynamoDB
+election
+ETL
+eventual consistency
+expiration
+extension
+failover
+foreign data wrapper
+foreign key
+foreign table
+grant
+GridFS
+hash
+hashed index
+hidden member
+horizontal scaling
+HyperLogLog
+incremental backup
+index
+instance
+isolation
+isolation level
+join
+journal
+key-value store
+list
+log sequence number
+logical replication
+LSN
+map-reduce
+materialized view
+migration
+mongod
+MongoDB
+MongoDB Atlas
+mongos
+mongosh
+multi-document transaction
+multi-version concurrency control
+MVCC
+MySQL
+normalization
+NoSQL
+ObjectId
+oplog
+optimizer
+ORM
+partition
+partitioned table
+persistence
+pipelining
+PostgreSQL
+primary
+primary key
+projection
+query optimizer
+query plan
+query planner
+RDBMS
+read concern
+read preference
+Redis
+Redis Cluster
+Redis Sentinel
+Redis Stack
+referential integrity
+relation
+replica
+replica set
+replication
+replication lag
+rollback
+savepoint
+schema
+secondary
+secondary index
+seed data
+semantic search
+sequence
+set
+shard
+shard key
+sharded cluster
+sharding
+snapshot
+sorted set
+SQL
+SQLite
+stale read
+standby
+storage engine
+stream
+streaming replication
+string
+subquery
+superuser
+t-digest
+table
+tablespace
+temporary table
+time series
+TOAST
+TPS
+transaction
+transactions per second
+trigger
+TTL
+tuple
+unique constraint
+unique index
+upsert
+vacuum
+vector database
+vector search
+view
+WAL
+window function
+WiredTiger
+write concern
+write-ahead log

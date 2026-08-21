@@ -1,0 +1,219 @@
+# source: https://developers.google.com/machine-learning/glossary https://airc.nist.gov/AI_RMF_Knowledge_Base/Glossary
+
+Ablation
+Activation function
+AdaGrad
+Adversarial example
+Agentic loop
+Anomaly detection
+Artificial general intelligence
+Artificial intelligence
+Attention mechanism
+Autoencoder
+AutoML
+Autonomous agent
+Backpropagation
+Batch normalization
+Bayesian neural network
+Bayesian optimization
+Bellman equation
+BERT
+Bias mitigation
+Bigram
+Binary classification
+Black box model
+BLEU
+Bounding box
+Chain-of-thought prompting
+Class imbalance
+Classification threshold
+Collaborative filtering
+Computer vision
+Concept drift
+Confabulation
+Confusion matrix
+Context window
+Convolution
+Convolutional neural network
+Copilot
+Counterfactual fairness
+Cross entropy
+Cross validation
+CUDA
+Data augmentation
+Data drift
+Data wrangling
+Decision forest
+Decision tree
+Decoder
+Deep learning
+Deep neural network
+Deep Q-network
+Deepfake
+Demographic parity
+Differential privacy
+Diffusion model
+Dimension reduction
+Discriminator
+Disparate impact
+Disparate treatment
+Distillation
+Domain shift
+Dropout
+Early stopping
+Edge case
+Embedding
+Encoder
+Ensemble
+Entropy
+Epoch
+Equality of opportunity
+Equalized odds
+Exploding gradient problem
+F1
+Facial recognition
+False negative
+False positive
+Feature cross
+Feature engineering
+Federated learning
+Feedforward neural network
+Few-shot learning
+Few-shot prompting
+Fine-tuning
+Foundation model
+GAN
+Generalization
+Generative adversarial network
+Generative AI
+Gini impurity
+Gradient boosting
+Gradient descent
+Ground truth
+Hallucination
+Hidden layer
+Human-in-the-loop
+Hyperparameter
+In-context learning
+Inference
+Instruction tuning
+Interpretability
+Intersection over union
+JAX
+K-means
+Keras
+Label leakage
+Label shift
+Language model
+Large language model
+Learning rate
+Lemmatization
+Levenshtein distance
+Linear model
+LLM
+Log loss
+Long short-term memory
+LoRA
+LSTM
+Machine learning
+Machine translation
+Markov decision process
+Masked language model
+Matrix factorization
+Mean squared error
+Membership inference
+Mini-batch
+Mixture of experts
+MLOps
+Model card
+Model extraction
+Model validation
+Multi-head self-attention
+Multimodal model
+Naive Bayes
+Natural language processing
+Natural language understanding
+Neural architecture search
+Neural network
+NLP
+NLU
+Nonstationarity
+Normalization
+One-hot encoding
+Outlier
+Overfitting
+Oversampling
+PaLM
+Parameter-efficient tuning
+Perceptron
+Perplexity
+Pooling
+Positional encoding
+Post-processing
+Pre-trained model
+Pre-training
+Prompt
+Prompt engineering
+Prompt tuning
+Q-function
+Q-learning
+Quantization
+R-squared
+RAG
+Random forest
+Recommendation system
+Rectified linear unit
+Recurrent neural network
+Regularization
+Reinforcement learning
+ReLU
+Reproducibility
+Responsible AI
+Retrieval-augmented generation
+RLHF
+RNN
+ROC curve
+ROUGE
+Scikit-learn
+Self-attention
+Self-supervised learning
+Semi-supervised learning
+Sensitive attribute
+Sentiment analysis
+Shard
+Sigmoid function
+Skip-gram
+Softmax
+Sparse feature
+Stochastic gradient descent
+Stride
+Subword token
+Supervised learning
+Support vector machine
+Tensor
+Tensor processing unit
+TensorBoard
+TensorFlow
+Token
+Tokenizer
+Top-k accuracy
+TPU
+Training data
+Training-serving skew
+Transfer learning
+Transformer
+Translational invariance
+Trustworthy AI
+Underfitting
+Undersampling
+Unlabeled example
+Unsupervised learning
+Value imputation
+Vanishing gradient problem
+Variational autoencoder
+Vibe coding
+Wasserstein loss
+Word embedding
+Z-score normalization
+Zero-shot learning
+Zero-shot prompting

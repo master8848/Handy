@@ -61,6 +61,14 @@ async changeThemeSetting(theme: string) : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+async changeAccentColorSetting(accentColor: AccentColor) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_accent_color_setting", { accentColor }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async changeStartHiddenSetting(enabled: boolean) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("change_start_hidden_setting", { enabled }) };
@@ -299,6 +307,51 @@ async setPostProcessSelectedPrompt(id: string) : Promise<Result<null, string>> {
 async updateCustomWords(words: string[]) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("update_custom_words", { words }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async updateTextReplacements(replacements: TextReplacement[]) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("update_text_replacements", { replacements }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Replaces the whole dataset list. The frontend manages individual datasets
+ * (toggle, add/remove words, rename, delete) and saves the resulting list in
+ * one shot, mirroring the flat `custom_words` update flow.
+ */
+async updateCustomWordDatasets(datasets: CustomWordDataset[]) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("update_custom_word_datasets", { datasets }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Imports a text file (one term per line) as a new user dataset. Reading
+ * happens in Rust so arbitrary user-picked paths work regardless of the
+ * plugin-fs scope.
+ */
+async importCustomWordDataset(path: string, name: string | null) : Promise<Result<CustomWordDataset, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("import_custom_word_dataset", { path, name }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Exports a dataset (user or built-in) to a text file, one term per line.
+ */
+async exportCustomWordDataset(datasetId: string, path: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("export_custom_word_dataset", { datasetId, path }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -689,6 +742,22 @@ async rescanLocalModels() : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+async getLoadedModels() : Promise<Result<string[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_loaded_models") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async setMultiModelLoading(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("set_multi_model_loading", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async updateMicrophoneMode(alwaysOn: boolean) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("update_microphone_mode", { alwaysOn }) };
@@ -808,6 +877,28 @@ async unloadModelManually() : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+async unloadModelById(modelId: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("unload_model_by_id", { modelId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * One-shot transcription of a user-picked audio file (mp3, wav, m4a, ogg,
+ * flac, …). Decodes to 16 kHz mono PCM, loads the requested (or selected)
+ * model, transcribes, and returns the finished text with text replacements
+ * applied. Progress is emitted on the `file-transcription-status` event.
+ */
+async transcribeAudioFile(path: string, modelId: string | null) : Promise<Result<string, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("transcribe_audio_file", { path, modelId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async getHistoryEntries(cursor: number | null, limit: number | null) : Promise<Result<PaginatedHistory, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_history_entries", { cursor, limit }) };
@@ -865,6 +956,170 @@ async updateRecordingRetentionPeriod(period: string) : Promise<Result<null, stri
 }
 },
 /**
+ * OS-provided speech-to-text (SFSpeechRecognizer on macOS, SAPI dictation on
+ * Windows). Both backends run off the UI thread via spawn_blocking.
+ */
+async osSpeechAvailable() : Promise<boolean> {
+    return await TAURI_INVOKE("os_speech_available");
+},
+/**
+ * OS speech recognition authorization status ("notDetermined"/"denied"/
+ * "restricted"/"authorized"). Windows reports "authorized" unconditionally
+ * (no dedicated OS speech permission prompt).
+ */
+async osSpeechAuthorizationStatus() : Promise<string> {
+    return await TAURI_INVOKE("os_speech_authorization_status");
+},
+/**
+ * Request OS speech recognition permission (macOS only; blocks until the
+ * system prompt resolves). Returns true when recognition may proceed.
+ */
+async osSpeechRequestAuthorization() : Promise<boolean> {
+    return await TAURI_INVOKE("os_speech_request_authorization");
+},
+/**
+ * Transcribe a 16 kHz mono 16-bit PCM WAV file with the OS speech engine.
+ * Offline-first: on-device recognition is preferred on both platforms.
+ */
+async transcribeOsWav(path: string) : Promise<Result<string, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("transcribe_os_wav", { path }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Check `text` for spelling and grammar issues using the offline Harper engine.
+ * 
+ * Heavy work (dictionary-backed linting) runs on a blocking worker so the UI
+ * thread never stalls; the frontend is expected to debounce calls (300 ms).
+ */
+async checkSpelling(text: string) : Promise<Result<SpellingIssue[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("check_spelling", { text }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Report whether the spell checker is initialized and enabled.
+ */
+async harperStatus() : Promise<Result<HarperStatus, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("harper_status") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Persist the global spell-check enable/disable toggle. Enabling also kicks
+ * off eager Harper initialization off the UI thread.
+ */
+async changeSpellCheckEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_spell_check_enabled_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Paste `text` into the active application (same clipboard-paste pipeline as
+ * transcription output) and record it in prompt history so the user can
+ * review what was pasted and when. Nothing is recorded when the paste fails.
+ */
+async pastePrompt(text: string) : Promise<Result<PromptHistoryEntry, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("paste_prompt", { text }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Record a prompt written in the Prompt Studio. The frontend auto-saves with
+ * a debounce, so written prompts show up in prompt history too — not just
+ * pasted ones. Deduplication keeps re-edits from piling up copies.
+ */
+async savePromptHistoryEntry(text: string) : Promise<Result<PromptHistoryEntry, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("save_prompt_history_entry", { text }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * List pasted prompts, newest first.
+ */
+async listPromptHistory(limit: number | null) : Promise<Result<PromptHistoryEntry[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_prompt_history", { limit }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Delete a single prompt history entry.
+ */
+async deletePromptHistoryEntry(id: number) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("delete_prompt_history_entry", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Clear the entire prompt history.
+ */
+async clearPromptHistory() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("clear_prompt_history") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Start a dictation recording. Mirrors the transcribe shortcut start path
+ * without overlay, tray icon, or feedback sounds.
+ */
+async startDictation() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("start_dictation") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Stop the current dictation recording and transcribe it, returning the text.
+ */
+async stopDictation() : Promise<Result<string, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("stop_dictation") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Cancel the current dictation recording and tear down any streaming worker.
+ */
+async cancelDictation() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("cancel_dictation") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Checks if the Mac is a laptop by detecting battery presence
  * 
  * This uses pmset to check for battery information.
@@ -885,10 +1140,12 @@ async isLaptop() : Promise<Result<boolean, string>> {
 
 export const events = __makeEvents__<{
 historyUpdatePayload: HistoryUpdatePayload,
+promptHistoryUpdatePayload: PromptHistoryUpdatePayload,
 streamPhaseEvent: StreamPhaseEvent,
 streamTextEvent: StreamTextEvent
 }>({
 historyUpdatePayload: "history-update-payload",
+promptHistoryUpdatePayload: "prompt-history-update-payload",
 streamPhaseEvent: "stream-phase-event",
 streamTextEvent: "stream-text-event"
 })
@@ -899,6 +1156,13 @@ streamTextEvent: "stream-text-event"
 
 /** user-defined types **/
 
+/**
+ * The accent (highlight) color used throughout the UI. Complements `Theme`:
+ * the theme picks the light/dark palette, the accent recolors the highlight
+ * tokens (logo, background-ui) via the `data-accent` attribute, which
+ * `src/styles/theme.css` maps to light/dark color pairs.
+ */
+export type AccentColor = "pink" | "orange" | "purple" | "green" | "blue" | "red"
 /**
  * The container-level `serde(default)` (backed by the `Default` impl below)
  * guarantees every field — including ones added in the future — falls back to
@@ -924,13 +1188,29 @@ bindings?: Partial<{ [key in string]: ShortcutBinding }>; push_to_talk?: boolean
  * upgrading from before this key existed are blanked by the migration so they
  * see the current release's notes — see `apply_settings_migrations`.
  */
-whats_new_last_seen_version?: string; selected_model?: string; onboarding_completed?: boolean; always_on_microphone?: boolean; selected_microphone?: string | null; clamshell_microphone?: string | null; selected_output_device?: string | null; translate_to_english?: boolean; selected_language?: string; overlay_position?: OverlayPosition; debug_mode?: boolean; log_level?: LogLevel; custom_words?: string[]; model_unload_timeout?: ModelUnloadTimeout; word_correction_threshold?: number; history_limit?: number; recording_retention_period?: RecordingRetentionPeriod; paste_method?: PasteMethod; clipboard_handling?: ClipboardHandling; auto_submit?: boolean; auto_submit_key?: AutoSubmitKey; post_process_enabled?: boolean; post_process_provider_id?: string; post_process_providers?: PostProcessProvider[]; post_process_api_keys?: SecretMap; post_process_models?: Partial<{ [key in string]: string }>; post_process_prompts?: LLMPrompt[]; post_process_selected_prompt_id?: string | null; mute_while_recording?: boolean; append_trailing_space?: boolean; app_language?: string; theme?: Theme; experimental_enabled?: boolean; lazy_stream_close?: boolean; keyboard_implementation?: KeyboardImplementation; show_tray_icon?: boolean; paste_delay_ms?: number; paste_delay_after_ms?: number; 
+whats_new_last_seen_version?: string; selected_model?: string; onboarding_completed?: boolean; always_on_microphone?: boolean; selected_microphone?: string | null; clamshell_microphone?: string | null; selected_output_device?: string | null; translate_to_english?: boolean; selected_language?: string; overlay_position?: OverlayPosition; debug_mode?: boolean; log_level?: LogLevel; custom_words?: string[]; 
+/**
+ * Named, toggleable term datasets. The legacy flat `custom_words` list is
+ * migrated into the "My Words" dataset on first load (see
+ * `apply_settings_migrations`); it is still honored by
+ * `effective_custom_words()` for older callers.
+ */
+custom_word_datasets?: CustomWordDataset[]; 
+/**
+ * Find/replace pairs applied to transcription output before pasting.
+ */
+text_replacements?: TextReplacement[]; model_unload_timeout?: ModelUnloadTimeout; 
+/**
+ * Keep several models loaded in memory at once; switching between loaded
+ * models is then instant and does not drop the others.
+ */
+multi_model_loading?: boolean; word_correction_threshold?: number; history_limit?: number; recording_retention_period?: RecordingRetentionPeriod; paste_method?: PasteMethod; clipboard_handling?: ClipboardHandling; auto_submit?: boolean; auto_submit_key?: AutoSubmitKey; post_process_enabled?: boolean; post_process_provider_id?: string; post_process_providers?: PostProcessProvider[]; post_process_api_keys?: SecretMap; post_process_models?: Partial<{ [key in string]: string }>; post_process_prompts?: LLMPrompt[]; post_process_selected_prompt_id?: string | null; mute_while_recording?: boolean; append_trailing_space?: boolean; app_language?: string; theme?: Theme; accent_color?: AccentColor; experimental_enabled?: boolean; lazy_stream_close?: boolean; keyboard_implementation?: KeyboardImplementation; show_tray_icon?: boolean; paste_delay_ms?: number; paste_delay_after_ms?: number; 
 /**
  * Debug-gated ("beta") receipt-sequenced paste: restore the clipboard only
  * after the target app actually reads the transcript, instead of after a
  * fixed delay. See `paste_tx`. macOS and Windows only.
  */
-reliable_paste?: boolean; typing_tool?: TypingTool; external_script_path?: string | null; custom_filler_words?: string[] | null; transcribe_accelerator?: TranscribeAcceleratorSetting; ort_accelerator?: OrtAcceleratorSetting; transcribe_gpu_device?: number; extra_recording_buffer_ms?: number; vad_enabled?: boolean; 
+reliable_paste?: boolean; typing_tool?: TypingTool; external_script_path?: string | null; custom_filler_words?: string[] | null; transcribe_accelerator?: TranscribeAcceleratorSetting; ort_accelerator?: OrtAcceleratorSetting; transcribe_gpu_device?: number; extra_recording_buffer_ms?: number; vad_enabled?: boolean; spell_check_enabled?: boolean; 
 /**
  * Which recording overlay to show: None / Minimal / Live. Streaming mode is
  * not gated on this — that follows model capability. Migrated from the old
@@ -943,14 +1223,39 @@ export type AvailableAccelerators = { transcribe: string[]; ort: string[]; gpu_d
 export type BindingResponse = { success: boolean; binding: ShortcutBinding | null; error: string | null }
 export type ClipboardHandling = "dont_modify" | "copy_to_clipboard"
 export type CustomSounds = { start: boolean; stop: boolean }
+/**
+ * A named collection of terms that improve transcription accuracy. Enabled
+ * datasets are fed to Whisper-family models as an initial prompt (capped) and
+ * to every engine as fuzzy post-correction. Built-in datasets ship with the
+ * app (see `crate::vocab`) and are read-only; user datasets can be created,
+ * edited, imported from a file, and deleted.
+ */
+export type CustomWordDataset = { id: string; name: string; words: string[]; builtin?: boolean; enabled?: boolean }
 export type EngineType = 
 /**
  * Any GGML/GGUF model loaded through transcribe-cpp (Whisper, Parakeet,
  * Voxtral, Qwen3-ASR, Nemotron, …). The architecture is auto-detected from
  * the file, so this one variant covers the whole transcribe-cpp family.
  */
-"TranscribeCpp" | "Parakeet" | "Moonshine" | "MoonshineStreaming" | "SenseVoice" | "GigaAM" | "Canary" | "Cohere"
+"TranscribeCpp" | "Parakeet" | "Moonshine" | "MoonshineStreaming" | "SenseVoice" | "GigaAM" | "Canary" | "Cohere" | 
+/**
+ * OS-provided speech recognition (SFSpeechRecognizer on macOS, SAPI on
+ * Windows). No weights — nothing to download or hold on disk.
+ */
+"OsSpeech"
 export type GpuDeviceOption = { id: number; name: string; total_vram_mb: number }
+/**
+ * Current state of the offline spell checker, for the frontend to reflect.
+ */
+export type HarperStatus = { 
+/**
+ * Whether the Harper lint group has been built and is ready for checks.
+ */
+initialized: boolean; 
+/**
+ * Whether spell checking is globally enabled in settings.
+ */
+enabled: boolean }
 export type HistoryEntry = { id: number; file_name: string; timestamp: number; saved: boolean; title: string; transcription_text: string; post_processed_text: string | null; post_process_prompt: string | null; post_process_requested: boolean }
 export type HistoryUpdatePayload = { action: "added"; entry: HistoryEntry } | { action: "updated"; entry: HistoryEntry } | { action: "deleted"; id: number } | { action: "toggled"; id: number }
 /**
@@ -1009,6 +1314,8 @@ export type PaginatedHistory = { entries: HistoryEntry[]; has_more: boolean }
 export type PasteMethod = "ctrl_v" | "direct" | "none" | "shift_insert" | "ctrl_shift_v" | "external_script"
 export type PermissionAccess = "allowed" | "denied" | "unknown"
 export type PostProcessProvider = { id: string; label: string; base_url: string; allow_base_url_edit?: boolean; models_endpoint?: string | null; supports_structured_output?: boolean }
+export type PromptHistoryEntry = { id: number; prompt_text: string; timestamp: number }
+export type PromptHistoryUpdatePayload = { action: "added"; entry: PromptHistoryEntry } | { action: "deleted"; id: number } | { action: "cleared" }
 export type RecordingRetentionPeriod = "never" | "preserve_limit" | "days_3" | "weeks_2" | "months_3"
 export type SecretMap = Partial<{ [key in string]: string }>
 export type SecureInputStatus = { 
@@ -1046,6 +1353,38 @@ recorder_blocked: boolean }
 export type ShortcutBinding = { id: string; name: string; description: string; default_binding: string; current_binding: string }
 export type SoundTheme = "marimba" | "pop" | "custom"
 /**
+ * A single issue found by the checker.
+ * 
+ * Offsets are UTF-16 code units so the frontend can slice JavaScript strings
+ * directly (`text.slice(start, end)`), matching how the streaming overlay
+ * measures text.
+ */
+export type SpellingIssue = { 
+/**
+ * UTF-16 code-unit offset of the start of the flagged span.
+ */
+start: number; 
+/**
+ * UTF-16 code-unit offset of the end (exclusive) of the flagged span.
+ */
+end: number; 
+/**
+ * Category of the issue (`Spelling`, `Grammar`, `Punctuation`, ...).
+ */
+kind: string; 
+/**
+ * Human-readable description of the issue.
+ */
+message: string; 
+/**
+ * Replacement texts that would resolve the issue (empty when unknown).
+ */
+suggestions: string[]; 
+/**
+ * Importance of the issue; lower is more important.
+ */
+priority: number }
+/**
  * Phase of the streaming overlay card, emitted to drive its UI state.
  */
 export type StreamPhase = 
@@ -1077,6 +1416,13 @@ export type StreamTextEvent = { committed: string; tentative: string }
  * Semantic kind of "working" phase, used to localize the spinner label.
  */
 export type StreamWorkKind = "transcribing" | "polishing"
+/**
+ * A user-defined find/replace pair applied to every transcription output
+ * before it is pasted. Lets users fix predictable mishearings (e.g. a
+ * colleague's name or product term the model consistently gets wrong) without
+ * retraining or re-prompting the model.
+ */
+export type TextReplacement = { id: string; find: string; replace: string; enabled?: boolean }
 /**
  * UI appearance mode. `System` follows the OS `prefers-color-scheme`; `Light`
  * and `Dark` force one of the two palettes Handy already ships.

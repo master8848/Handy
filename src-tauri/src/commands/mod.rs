@@ -1,7 +1,12 @@
 pub mod audio;
+pub mod dictation;
 pub mod history;
 pub mod models;
+pub mod os_speech;
+pub mod prompt_history;
+pub mod spellcheck;
 pub mod transcription;
+pub mod vocabulary;
 
 use crate::settings::{get_settings, write_settings, AppSettings, LogLevel};
 use crate::utils::cancel_current_operation;
