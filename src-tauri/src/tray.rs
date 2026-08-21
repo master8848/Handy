@@ -170,7 +170,24 @@ fn load_tray_icon(resolved_icon_path: tauri::Result<PathBuf>) -> tauri::Result<I
 }
 
 pub fn tray_tooltip() -> String {
-    version_label()
+    let base = version_label();
+    // When server mode is active, append the bound port so the user knows where to open
+    // We read server state if available; otherwise fall back to settings port.
+    // This is called at startup before server is bound, so it may just show the preferred port.
+    // After binding, update_tray_menu refreshes the tooltip with the actual port.
+    base
+}
+
+fn server_tooltip_suffix(app: &AppHandle) -> Option<String> {
+    let settings = settings::get_settings(app);
+    if !settings.server_mode_enabled {
+        return None;
+    }
+    let port = app
+        .try_state::<crate::server::ServerState>()
+        .and_then(|s| s.port())
+        .unwrap_or(settings.server_port);
+    Some(format!(" — 127.0.0.1:{port}"))
 }
 
 fn version_label() -> String {
@@ -212,6 +229,40 @@ pub fn update_tray_menu(app: &AppHandle, locale: Option<&str>) {
     let version_label = version_label();
     let version_i = MenuItem::with_id(app, "version", &version_label, false, None::<&str>)
         .expect("failed to create version item");
+    // Server mode items: open in browser (http://127.0.0.1:port) + lazy settings window
+    // Labels come from tray i18n with English fallback so menu never shows blank.
+    let open_in_browser_label = {
+        let s = strings.open_in_browser.clone();
+        if s.is_empty() {
+            get_tray_translations(Some("en".to_string())).open_in_browser
+        } else {
+            s
+        }
+    };
+    let open_settings_window_label = {
+        let s = strings.open_settings_window.clone();
+        if s.is_empty() {
+            get_tray_translations(Some("en".to_string())).open_settings_window
+        } else {
+            s
+        }
+    };
+    let open_in_browser_i = MenuItem::with_id(
+        app,
+        "open_in_browser",
+        &open_in_browser_label,
+        true,
+        None::<&str>,
+    )
+    .expect("failed to create open in browser item");
+    let open_settings_window_i = MenuItem::with_id(
+        app,
+        "open_settings_window",
+        &open_settings_window_label,
+        true,
+        None::<&str>,
+    )
+    .expect("failed to create open settings window item");
     let settings_i = MenuItem::with_id(
         app,
         "settings",
@@ -288,6 +339,8 @@ pub fn update_tray_menu(app: &AppHandle, locale: Option<&str>) {
                 app,
                 &[
                     &version_i,
+                    &open_in_browser_i,
+                    &open_settings_window_i,
                     &separator(),
                     &cancel_i,
                     &separator(),
@@ -305,6 +358,8 @@ pub fn update_tray_menu(app: &AppHandle, locale: Option<&str>) {
             app,
             &[
                 &version_i,
+                &open_in_browser_i,
+                &open_settings_window_i,
                 &separator(),
                 &copy_last_transcript_i,
                 &separator(),
@@ -320,12 +375,17 @@ pub fn update_tray_menu(app: &AppHandle, locale: Option<&str>) {
         .expect("failed to create menu"),
     };
 
-    // Both layouts start with [version, separator, ...]; slot the warning in
-    // right below the version line so it's the first actionable thing seen.
-    let mut tooltip = version_label;
+    // Both layouts start with [version, open_in_browser, open_settings_window, separator, ...];
+    // slot the warning right below the version line so it's the first actionable thing seen.
+    // Note: with the new items, version is index 0, so warning should be inserted after version
+    // but before the browser items? Keep at index 1 as before — it will appear below version and above browser.
+    let mut tooltip = version_label.clone();
+    if let Some(suffix) = server_tooltip_suffix(app) {
+        tooltip.push_str(&suffix);
+    }
     if let Some(warning_item) = secure_input_warning {
-        let _ = menu.insert(&warning_item, 2);
-        let _ = menu.insert(&separator(), 3);
+        let _ = menu.insert(&warning_item, 1);
+        let _ = menu.insert(&separator(), 2);
         tooltip = format!("{} — {}", tooltip, warning_item.text().unwrap_or_default());
     }
 

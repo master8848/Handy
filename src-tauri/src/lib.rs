@@ -19,6 +19,7 @@ mod overlay;
 mod paste_tx;
 pub mod portable;
 mod secure_input;
+mod server;
 mod settings;
 mod shortcut;
 mod signal_handle;
@@ -49,6 +50,7 @@ use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Emitter, Listener, Manager};
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_log::{Builder as LogBuilder, RotationStrategy, Target, TargetKind};
+use tauri_plugin_opener::OpenerExt;
 
 use crate::settings::get_settings;
 
@@ -125,6 +127,29 @@ fn show_main_window(app: &AppHandle) {
     );
 }
 
+pub fn ensure_main_window(app: &AppHandle) -> Result<(), String> {
+    if app.get_webview_window("main").is_some() {
+        show_main_window(app);
+        return Ok(());
+    }
+    let mut win_builder =
+        tauri::WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App("/".into()))
+            .title("Handy")
+            .inner_size(680.0, 570.0)
+            .min_inner_size(680.0, 570.0)
+            .resizable(true)
+            .maximizable(true)
+            .visible(false);
+
+    if let Some(data_dir) = portable::data_dir() {
+        win_builder = win_builder.data_directory(data_dir.join("webview"));
+    }
+
+    win_builder.build().map_err(|e| e.to_string())?;
+    show_main_window(app);
+    Ok(())
+}
+
 #[allow(unused_variables)]
 fn should_force_show_permissions_window(app: &AppHandle) -> bool {
     #[cfg(target_os = "windows")]
@@ -175,6 +200,10 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     let prompt_history_manager = Arc::new(
         PromptHistoryManager::new(app_handle).expect("Failed to initialize prompt history manager"),
     );
+    let prompt_library_manager = Arc::new(
+        managers::prompt_library::PromptLibraryManager::new(app_handle)
+            .expect("Failed to initialize prompt library manager"),
+    );
 
     // Initialize the transcribe-cpp native backend (logging + backend module
     // registration) once, before any whisper model is loaded.
@@ -189,6 +218,7 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     app_handle.manage(transcription_manager.clone());
     app_handle.manage(history_manager.clone());
     app_handle.manage(prompt_history_manager.clone());
+    app_handle.manage(prompt_library_manager.clone());
     app_handle.manage(tray::CurrentTrayIconState::new());
     // Spell checker is lazy: the Harper dictionary is parsed on first check.
     let spell_checker = Arc::new(spellcheck::SpellChecker::with_app_handle(
@@ -258,7 +288,7 @@ fn initialize_core_logic(app_handle: &AppHandle) {
                     }
                 );
                 if opens_window {
-                    show_main_window(tray.app_handle());
+                    let _ = ensure_main_window(tray.app_handle());
                 }
             });
     }
@@ -269,12 +299,33 @@ fn initialize_core_logic(app_handle: &AppHandle) {
 
     let tray = tray_builder
         .on_menu_event(|app, event| match event.id.as_ref() {
+            "open_in_browser" => {
+                let settings = settings::get_settings(app);
+                let port = app
+                    .try_state::<crate::server::ServerState>()
+                    .and_then(|s| s.port())
+                    .unwrap_or(settings.server_port);
+                let url = crate::server::local_url(port);
+                if let Err(e) = app.opener().open_url(url.clone(), None::<&str>) {
+                    log::error!("Failed to open browser {}: {}", url, e);
+                }
+            }
+            "open_settings_window" => {
+                if let Err(e) = ensure_main_window(app) {
+                    log::error!("Failed to open settings window: {}", e);
+                }
+            }
             "settings" => {
-                show_main_window(app);
+                // Legacy id — also ensure window lazily for server mode
+                if let Err(e) = ensure_main_window(app) {
+                    log::error!("Failed to open settings window: {}", e);
+                }
             }
             "secure_input_warning" => {
                 // Full explanation lives in the settings-window banner
-                show_main_window(app);
+                if let Err(e) = ensure_main_window(app) {
+                    log::error!("Failed to open settings window: {}", e);
+                }
             }
             "check_updates" => {
                 let settings = settings::get_settings(app);
@@ -679,6 +730,9 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_ort_accelerator_setting,
             shortcut::change_transcribe_gpu_device,
             shortcut::get_available_accelerators,
+            shortcut::change_server_mode_enabled_setting,
+            shortcut::change_server_port_setting,
+            shortcut::regenerate_server_token_setting,
             shortcut::handy_keys::start_handy_keys_recording,
             shortcut::handy_keys::stop_handy_keys_recording,
             secure_input::get_secure_input_status,
@@ -749,6 +803,25 @@ pub fn run(cli_args: CliArgs) {
             commands::prompt_history::list_prompt_history,
             commands::prompt_history::delete_prompt_history_entry,
             commands::prompt_history::clear_prompt_history,
+            commands::prompt_library::list_prompts,
+            commands::prompt_library::search_prompts,
+            commands::prompt_library::get_prompt,
+            commands::prompt_library::create_prompt,
+            commands::prompt_library::update_prompt,
+            commands::prompt_library::delete_prompt,
+            commands::prompt_library::duplicate_prompt,
+            commands::prompt_library::toggle_prompt_pin,
+            commands::prompt_library::increment_prompt_usage,
+            commands::prompt_library::insert_prompt,
+            commands::prompt_library::list_folders,
+            commands::prompt_library::create_folder,
+            commands::prompt_library::update_folder,
+            commands::prompt_library::delete_folder,
+            commands::prompt_library::list_tags,
+            commands::prompt_library::list_prompt_versions,
+            commands::prompt_library::restore_prompt_version,
+            commands::prompt_library::export_prompts,
+            commands::prompt_library::import_prompts,
             commands::dictation::start_dictation,
             commands::dictation::stop_dictation,
             commands::dictation::cancel_dictation,
@@ -757,6 +830,7 @@ pub fn run(cli_args: CliArgs) {
         .events(collect_events![
             managers::history::HistoryUpdatePayload,
             managers::prompt_history::PromptHistoryUpdatePayload,
+            managers::prompt_library::PromptLibraryUpdatePayload,
             managers::transcription::StreamTextEvent,
             managers::transcription::StreamPhaseEvent,
         ]);
@@ -847,7 +921,20 @@ pub fn run(cli_args: CliArgs) {
             } else if args.iter().any(|a| a == "--cancel") {
                 crate::utils::cancel_current_operation(app);
             } else {
-                show_main_window(app);
+                // Server mode: plain launch should open browser, not a dead show_main_window
+                let settings = crate::settings::get_settings(app);
+                if settings.server_mode_enabled && app.get_webview_window("main").is_none() {
+                    let port = app
+                        .try_state::<crate::server::ServerState>()
+                        .and_then(|s| s.port())
+                        .unwrap_or(settings.server_port);
+                    let url = crate::server::local_url(port);
+                    if let Err(e) = app.opener().open_url(url.clone(), None::<&str>) {
+                        log::error!("Failed to open browser {}: {}", url, e);
+                    }
+                } else {
+                    show_main_window(app);
+                }
             }
         }));
     }
@@ -867,6 +954,7 @@ pub fn run(cli_args: CliArgs) {
             Some(vec![]),
         ))
         .manage(cli_args.clone())
+        .manage(crate::server::ServerState::new())
         .setup(move |app| {
             specta_builder.mount_events(app);
 
@@ -912,22 +1000,45 @@ pub fn run(cli_args: CliArgs) {
                 return Ok(());
             }
 
-            // Create main window programmatically so we can set data_directory
-            // for portable mode (redirects WebView2 cache to portable Data dir)
-            let mut win_builder =
-                tauri::WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App("/".into()))
-                    .title("Handy")
-                    .inner_size(680.0, 570.0)
-                    .min_inner_size(680.0, 570.0)
-                    .resizable(true)
-                    .maximizable(true)
-                    .visible(false);
+            // Check server mode: if enabled, skip main WebViewWindow (saves 150-300 MB)
+            let server_mode_enabled = {
+                let s = get_settings(app.handle());
+                s.server_mode_enabled
+            };
 
-            if let Some(data_dir) = portable::data_dir() {
-                win_builder = win_builder.data_directory(data_dir.join("webview"));
+            if !server_mode_enabled {
+                // Create main window programmatically so we can set data_directory
+                // for portable mode (redirects WebView2 cache to portable Data dir)
+                let mut win_builder = tauri::WebviewWindowBuilder::new(
+                    app,
+                    "main",
+                    tauri::WebviewUrl::App("/".into()),
+                )
+                .title("Handy")
+                .inner_size(680.0, 570.0)
+                .min_inner_size(680.0, 570.0)
+                .resizable(true)
+                .maximizable(true)
+                .visible(false);
+
+                if let Some(data_dir) = portable::data_dir() {
+                    win_builder = win_builder.data_directory(data_dir.join("webview"));
+                }
+
+                win_builder.build()?;
+            } else {
+                log::info!("Server mode enabled — skipping main WebviewWindow");
+                #[cfg(target_os = "macos")]
+                {
+                    // Start hidden as accessory when server mode + start_hidden style
+                    let settings = get_settings(app.handle());
+                    if settings.start_hidden || settings.show_tray_icon {
+                        let _ = app
+                            .handle()
+                            .set_activation_policy(tauri::ActivationPolicy::Accessory);
+                    }
+                }
             }
-
-            win_builder.build()?;
 
             let mut settings = get_settings(app.handle());
 
@@ -956,6 +1067,16 @@ pub fn run(cli_args: CliArgs) {
             app.manage(TranscriptionCoordinator::new(app_handle.clone()));
 
             initialize_core_logic(&app_handle);
+
+            // Server mode: spawn axum server after core logic (tray etc. are ready)
+            if server_mode_enabled {
+                let handle = app_handle.clone();
+                tauri::async_runtime::spawn(async move {
+                    if let Err(e) = crate::server::start_server(handle.clone()).await {
+                        log::error!("Failed to start Handy server: {}", e);
+                    }
+                });
+            }
 
             // Secure Input monitor (macOS): detects stuck secure input that
             // silently blocks keyed shortcuts, warns the user, and activates
@@ -989,11 +1110,13 @@ pub fn run(cli_args: CliArgs) {
             // But if permission onboarding is required, always show the window.
             let should_hide = settings.start_hidden || cli_args.start_hidden;
             let should_force_show = should_force_show_permissions_window(&app_handle);
-
-            // If start_hidden but tray is disabled, we must show the window
-            // anyway. Without a tray icon, the dock is the only way back in.
             let tray_available = settings.show_tray_icon && !cli_args.no_tray;
-            if should_force_show || !should_hide || !tray_available {
+            if server_mode_enabled {
+                if should_force_show {
+                    // Server mode still needs to show onboarding → create window lazily
+                    let _ = ensure_main_window(&app_handle);
+                }
+            } else if should_force_show || !should_hide || !tray_available {
                 show_main_window(&app_handle);
             }
 
