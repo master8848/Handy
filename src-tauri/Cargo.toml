@@ -64,7 +64,12 @@ symphonia = { version = "0.5", default-features = false, features = [
 ] }
 log = "0.4.25"
 env_filter = "0.1.0"
-tokio = "1.43.0"
+tokio = { version = "1.43.0", features = ["rt-multi-thread", "macros", "sync", "time", "net", "io-util", "rt"] }
+axum = { version = "0.7", features = ["macros"] }
+tower = "0.4"
+tower-http = { version = "0.6", features = ["fs", "cors"] }
+rand = "0.8"
+base64 = "0.22"
 vad-rs = { git = "https://github.com/cjpais/vad-rs", default-features = false }
 enigo = "0.6.1"
 rodio = { git = "https://github.com/cjpais/rodio.git" }
@@ -145,6 +150,9 @@ windows = { version = "0.61.3", features = [
   "Media_SpeechRecognition",
 ] }
 winreg = "0.55"
+# Native overlay (Phase 3): pill rendering via CPU raster.
+softbuffer = "0.4"
+tiny-skia = "0.11"
 
 # Whisper backend per Windows arch. x86_64 ships the Vulkan GPU backend and
 # keeps the dynamic-backends posture (loadable per-ISA CPU modules + Vulkan),
