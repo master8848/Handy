@@ -42,8 +42,8 @@ import {
   SpellCheckExtension,
   SPELL_CHECK_META,
 } from "./spellCheckExtension";
+import { SPELL_CHECK_DEBOUNCE_MS } from "@/lib/constants/debounce";
 
-const SPELL_CHECK_DEBOUNCE_MS = 300;
 const SPELL_HOVER_DELAY_MS = 250;
 const PROMPT_AUTO_SAVE_DEBOUNCE_MS = 1500;
 

@@ -507,6 +507,30 @@ async changeTranscribeGpuDevice(device: number) : Promise<Result<null, string>> 
 async getAvailableAccelerators() : Promise<AvailableAccelerators> {
     return await TAURI_INVOKE("get_available_accelerators");
 },
+async changeServerModeEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_server_mode_enabled_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async changeServerPortSetting(port: number) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_server_port_setting", { port }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async regenerateServerTokenSetting() : Promise<Result<string, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("regenerate_server_token_setting") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 /**
  * Start key recording mode
  */
@@ -1132,6 +1156,158 @@ async isLaptop() : Promise<Result<boolean, string>> {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async listPrompts(filter: PromptFilter | null) : Promise<Result<Prompt[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_prompts", { filter }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async searchPrompts(query: string, folderId: number | null, limit: number | null) : Promise<Result<Prompt[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("search_prompts", { query, folderId, limit }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getPrompt(id: number) : Promise<Result<Prompt, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_prompt", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async createPrompt(title: string, content: string, folderId: number | null, tags: string[] | null) : Promise<Result<Prompt, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("create_prompt", { title, content, folderId, tags }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async updatePrompt(id: number, title: string, content: string, folderId: number | null, tags: string[] | null) : Promise<Result<Prompt, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("update_prompt", { id, title, content, folderId, tags }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async deletePrompt(id: number) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("delete_prompt", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async duplicatePrompt(id: number) : Promise<Result<Prompt, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("duplicate_prompt", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async togglePromptPin(id: number) : Promise<Result<Prompt, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("toggle_prompt_pin", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async incrementPromptUsage(id: number) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("increment_prompt_usage", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async insertPrompt(id: number, variables: Partial<{ [key in string]: string }> | null) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("insert_prompt", { id, variables }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async listFolders() : Promise<Result<Folder[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_folders") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async createFolder(name: string, color: string | null) : Promise<Result<Folder, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("create_folder", { name, color }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async updateFolder(id: number, name: string, color: string | null) : Promise<Result<Folder, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("update_folder", { id, name, color }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async deleteFolder(id: number) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("delete_folder", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async listTags() : Promise<Result<Tag[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_tags") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async listPromptVersions(promptId: number) : Promise<Result<PromptVersion[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_prompt_versions", { promptId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async restorePromptVersion(promptId: number, version: number) : Promise<Result<Prompt, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("restore_prompt_version", { promptId, version }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async exportPrompts() : Promise<Result<string, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("export_prompts") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async importPrompts(json: string) : Promise<Result<number, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("import_prompts", { json }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -1141,11 +1317,13 @@ async isLaptop() : Promise<Result<boolean, string>> {
 export const events = __makeEvents__<{
 historyUpdatePayload: HistoryUpdatePayload,
 promptHistoryUpdatePayload: PromptHistoryUpdatePayload,
+promptLibraryUpdatePayload: PromptLibraryUpdatePayload,
 streamPhaseEvent: StreamPhaseEvent,
 streamTextEvent: StreamTextEvent
 }>({
 historyUpdatePayload: "history-update-payload",
 promptHistoryUpdatePayload: "prompt-history-update-payload",
+promptLibraryUpdatePayload: "prompt-library-update-payload",
 streamPhaseEvent: "stream-phase-event",
 streamTextEvent: "stream-text-event"
 })
@@ -1216,7 +1394,7 @@ reliable_paste?: boolean; typing_tool?: TypingTool; external_script_path?: strin
  * not gated on this — that follows model capability. Migrated from the old
  * `overlay_position` (position `none` → style `None`).
  */
-overlay_style?: OverlayStyle }
+overlay_style?: OverlayStyle; prompt_library_enabled?: boolean; server_mode_enabled?: boolean; server_port?: number; server_bind?: string; server_auth_token?: string | null }
 export type AudioDevice = { index: string; name: string; is_default: boolean }
 export type AutoSubmitKey = "enter" | "ctrl_enter" | "cmd_enter"
 export type AvailableAccelerators = { transcribe: string[]; ort: string[]; gpu_devices: GpuDeviceOption[] }
@@ -1316,6 +1494,13 @@ export type PermissionAccess = "allowed" | "denied" | "unknown"
 export type PostProcessProvider = { id: string; label: string; base_url: string; allow_base_url_edit?: boolean; models_endpoint?: string | null; supports_structured_output?: boolean }
 export type PromptHistoryEntry = { id: number; prompt_text: string; timestamp: number }
 export type PromptHistoryUpdatePayload = { action: "added"; entry: PromptHistoryEntry } | { action: "deleted"; id: number } | { action: "cleared" }
+export type Prompt = { id: number; title: string; content: string; folder_id: number | null; folder_name: string | null; tags: string[]; variables: string[]; pinned: boolean; usage_count: number; last_used: number | null; created_at: number; updated_at: number; version: number }
+export type Folder = { id: number; name: string; color: string | null; sort_order: number; created_at: number }
+export type Tag = { id: number; name: string }
+export type PromptVersion = { id: number; prompt_id: number; version: number; title: string; content: string; created_at: number }
+export type PromptSort = "updatedDesc" | "createdDesc" | "usageDesc" | "titleAsc"
+export type PromptFilter = { search: string | null; folder_id: number | null; tag: string | null; pinned_only: boolean | null; sort: PromptSort | null; limit: number | null; offset: number | null }
+export type PromptLibraryUpdatePayload = { action: "added"; prompt: Prompt } | { action: "updated"; prompt: Prompt } | { action: "deleted"; id: number } | { action: "pinned"; id: number; pinned: boolean }
 export type RecordingRetentionPeriod = "never" | "preserve_limit" | "days_3" | "weeks_2" | "months_3"
 export type SecretMap = Partial<{ [key in string]: string }>
 export type SecureInputStatus = { 

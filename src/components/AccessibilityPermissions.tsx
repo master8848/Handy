@@ -5,6 +5,7 @@ import {
   checkAccessibilityPermission,
   requestAccessibilityPermission,
 } from "tauri-plugin-macos-permissions-api";
+import { commands } from "@/bindings";
 
 // Define permission state type
 type PermissionState = "request" | "verify" | "granted";
@@ -24,9 +25,17 @@ const AccessibilityPermissions: React.FC = () => {
   // Accessibility permissions are only required on macOS
   const isMacOS = type() === "macos";
 
-  // Check permissions without requesting
+  // Check permissions without requesting — with Enigo fallback for stale TCC after reinstall
   const checkPermissions = async (): Promise<boolean> => {
-    const hasPermissions: boolean = await checkAccessibilityPermission();
+    let hasPermissions: boolean = await checkAccessibilityPermission();
+    if (!hasPermissions) {
+      try {
+        const res = await commands.initializeEnigo();
+        if (res.status === "ok") hasPermissions = true;
+      } catch {
+        // keep plugin result
+      }
+    }
     setHasAccessibility(hasPermissions);
     setPermissionState(hasPermissions ? "granted" : "verify");
     return hasPermissions;
@@ -54,7 +63,15 @@ const AccessibilityPermissions: React.FC = () => {
     if (!isMacOS) return;
 
     const initialSetup = async (): Promise<void> => {
-      const hasPermissions: boolean = await checkAccessibilityPermission();
+      let hasPermissions: boolean = await checkAccessibilityPermission();
+      if (!hasPermissions) {
+        try {
+          const res = await commands.initializeEnigo();
+          if (res.status === "ok") hasPermissions = true;
+        } catch {
+          // keep plugin result
+        }
+      }
       setHasAccessibility(hasPermissions);
       setPermissionState(hasPermissions ? "granted" : "request");
     };

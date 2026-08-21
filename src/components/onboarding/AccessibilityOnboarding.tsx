@@ -138,11 +138,19 @@ const AccessibilityOnboarding: React.FC<AccessibilityOnboardingProps> = ({
         return false;
       }
 
-      // macOS: check both
-      const [accessibilityGranted, microphoneGranted] = await Promise.all([
+      // macOS: check both — with Enigo fallback for stale AXIsProcessTrusted after reinstall
+      let [accessibilityGranted, microphoneGranted] = await Promise.all([
         checkAccessibilityPermission(),
         checkMicrophonePermission(),
       ]);
+      if (!accessibilityGranted) {
+        try {
+          const res = await commands.initializeEnigo();
+          if (res.status === "ok") accessibilityGranted = true;
+        } catch {
+          // keep plugin result
+        }
+      }
 
       let anyGranted = false;
       setPermissions((prev) => {
@@ -219,12 +227,19 @@ const AccessibilityOnboarding: React.FC<AccessibilityOnboardingProps> = ({
   // Re-check when the app regains focus (user returns from System Settings).
   // This is the primary recovery path when the 1s interval is throttled in the
   // background or when AXIsProcessTrusted only flips on next run-loop.
+  // Also handles reinstall-with-same-bundle-ID where TCC already ticked but
+  // initial check returned false — focus after DMG copy should re-check.
   useEffect(() => {
     if (!isMacOS && !isWindows) return;
 
     const handleFocusCheck = () => {
       const p = permissionsRef.current;
-      if (p.accessibility === "waiting" || p.microphone === "waiting") {
+      if (
+        p.accessibility === "waiting" ||
+        p.accessibility === "needed" ||
+        p.microphone === "waiting" ||
+        p.microphone === "needed"
+      ) {
         void checkPermissionsNow();
       }
     };
@@ -262,10 +277,22 @@ const AccessibilityOnboarding: React.FC<AccessibilityOnboardingProps> = ({
     const checkInitial = async () => {
       if (nextPlatform === "macos") {
         try {
-          const [accessibilityGranted, microphoneGranted] = await Promise.all([
+          let [accessibilityGranted, microphoneGranted] = await Promise.all([
             checkAccessibilityPermission(),
             checkMicrophonePermission(),
           ]);
+
+          // Fallback for reinstall-with-same-bundle-ID: AXIsProcessTrusted can
+          // still return false after DMG copy until restart, even though TCC
+          // shows ticked. Enigo init is ground truth — if it succeeds, treat as granted.
+          if (!accessibilityGranted) {
+            try {
+              const res = await commands.initializeEnigo();
+              if (res.status === "ok") accessibilityGranted = true;
+            } catch {
+              // keep original value
+            }
+          }
 
           // If accessibility is granted, initialize Enigo and shortcuts
           if (accessibilityGranted) {

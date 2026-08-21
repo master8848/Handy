@@ -179,6 +179,9 @@ const settingUpdaters: {
     commands.changeTranscribeGpuDevice(value as number),
   extra_recording_buffer_ms: (value) =>
     commands.changeExtraRecordingBufferSetting(value as number),
+  server_mode_enabled: (value) =>
+    commands.changeServerModeEnabledSetting(value as boolean),
+  server_port: (value) => commands.changeServerPortSetting(value as number),
 };
 
 export const useSettingsStore = create<SettingsStore>()(

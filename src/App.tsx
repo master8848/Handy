@@ -15,6 +15,7 @@ import Footer from "./components/footer";
 import Onboarding, { AccessibilityOnboarding } from "./components/onboarding";
 import { Sidebar, SidebarSection, SECTIONS_CONFIG } from "./components/Sidebar";
 import { WhatsNewGate } from "./components/whats-new";
+import { PromptPalette } from "./components/prompt-library/PromptPalette";
 import { useSettings } from "./hooks/useSettings";
 import { useSettingsStore } from "./stores/settingsStore";
 import { commands } from "@/bindings";
@@ -196,10 +197,22 @@ function App() {
 
         if (currentPlatform === "macos") {
           try {
-            const [hasAccessibility, hasMicrophone] = await Promise.all([
+            let [hasAccessibility, hasMicrophone] = await Promise.all([
               checkAccessibilityPermission(),
               checkMicrophonePermission(),
             ]);
+            // Fallback: `AXIsProcessTrusted()` can return false after a reinstall
+            // with the same bundle ID until restart / re-trust, even though the
+            // app is already ticked in System Settings. Enigo init is ground truth
+            // — if it succeeds, we are trusted regardless of the plugin check.
+            if (!hasAccessibility) {
+              try {
+                const res = await commands.initializeEnigo();
+                if (res.status === "ok") hasAccessibility = true;
+              } catch {
+                // keep original value
+              }
+            }
             if (!hasAccessibility || !hasMicrophone) {
               await revealMainWindowForPermissions();
               setOnboardingStep("accessibility");
@@ -325,6 +338,7 @@ function App() {
     <>
       {toaster}
       {content}
+      <PromptPalette />
     </>
   );
 }

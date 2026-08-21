@@ -1,6 +1,7 @@
 export type AppSection =
   | "home"
   | "prompt-history"
+  | "prompt-library"
   | "general"
   | "appearance"
   | "history"

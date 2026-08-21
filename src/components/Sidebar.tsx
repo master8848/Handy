@@ -11,6 +11,7 @@ import {
   Sparkles,
   Cpu,
   FileAudio,
+  Library,
 } from "lucide-react";
 import HandyTextLogo from "./icons/HandyTextLogo";
 import HandyHand from "./icons/HandyHand";
@@ -27,6 +28,7 @@ import {
   Home,
   PromptHistory,
 } from "./settings";
+import { PromptLibraryView } from "./prompt-library/PromptLibraryView";
 import type { AppSection } from "../lib/types/navigation";
 import { TranscribeFiles } from "./transcribe/TranscribeFiles";
 
@@ -54,6 +56,12 @@ export const SECTIONS_CONFIG = {
     labelKey: "sidebar.home",
     icon: HomeIcon,
     component: Home,
+    enabled: () => true,
+  },
+  "prompt-library": {
+    labelKey: "sidebar.promptLibrary",
+    icon: Library,
+    component: PromptLibraryView,
     enabled: () => true,
   },
   "prompt-history": {
