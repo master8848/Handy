@@ -775,8 +775,11 @@ impl TranscriptionManager {
                         return Err(anyhow::anyhow!(error_msg));
                     }
                     if crate::os_speech::authorization_status() != "authorized" {
-                        let error_msg = "OS speech authorization required — grant access \
-                                         in System Settings to use this model";
+                        // "[os_speech_auth_required]" is a stable machine-readable
+                        // marker the frontend matches on (do not translate/reword it).
+                        let error_msg = "[os_speech_auth_required] Speech Recognition access \
+                                         is off for Handy. Open System Settings \u{2192} Privacy \
+                                         & Security \u{2192} Speech Recognition and enable Handy.";
                         emit_loading_failed(error_msg);
                         return Err(anyhow::anyhow!(error_msg));
                     }

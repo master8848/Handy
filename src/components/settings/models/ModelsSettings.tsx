@@ -151,10 +151,14 @@ export const ModelsSettings: React.FC = () => {
     try {
       const success = await selectModel(modelId);
       // macOS: loading os-speech fails until speech recognition permission is
-      // granted. The backend reports it with "authorization required".
+      // granted. The backend marks this with a stable "[os_speech_auth_required]"
+      // prefix (older builds used the English "authorization required" wording).
       if (!success && modelId === "os-speech") {
         const storeError = useModelStore.getState().error ?? "";
-        if (storeError.includes("authorization required")) {
+        if (
+          storeError.includes("[os_speech_auth_required]") ||
+          storeError.includes("authorization required")
+        ) {
           setOsAuthError(true);
         }
       }
@@ -168,6 +172,14 @@ export const ModelsSettings: React.FC = () => {
       await unloadModel(modelId);
     } catch (err) {
       console.error(`Failed to unload model ${modelId}:`, err);
+    }
+  };
+
+  const handleOpenSpeechSettings = async () => {
+    try {
+      await commands.openSpeechRecognitionSettings();
+    } catch (err) {
+      console.error("Failed to open speech recognition settings:", err);
     }
   };
 
@@ -336,6 +348,14 @@ export const ModelsSettings: React.FC = () => {
             {t("settings.models.osSpeech.authRequired")}
           </p>
           <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleOpenSpeechSettings}
+              className="shrink-0"
+            >
+              {t("settings.models.osSpeech.openSystemSettings")}
+            </Button>
             <Button
               variant="secondary"
               size="sm"

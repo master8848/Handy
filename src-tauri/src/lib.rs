@@ -795,6 +795,7 @@ pub fn run(cli_args: CliArgs) {
             commands::os_speech::os_speech_available,
             commands::os_speech::os_speech_authorization_status,
             commands::os_speech::os_speech_request_authorization,
+            commands::os_speech::open_speech_recognition_settings,
             commands::os_speech::transcribe_os_wav,
             commands::spellcheck::check_spelling,
             commands::spellcheck::harper_status,

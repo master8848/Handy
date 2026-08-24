@@ -49,6 +49,30 @@ pub fn os_speech_request_authorization() -> bool {
     }
 }
 
+/// Open the OS speech-recognition permission pane directly.
+///
+/// macOS deep-links into System Settings → Privacy & Security → Speech
+/// Recognition so users don't have to hunt for it. Other platforms are no-ops
+/// (Windows has no dedicated OS speech permission).
+#[tauri::command]
+#[specta::specta]
+pub fn open_speech_recognition_settings(app: tauri::AppHandle) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        const SPEECH_PANE_URL: &str =
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_SpeechRecognition";
+        use tauri_plugin_opener::OpenerExt;
+        app.opener()
+            .open_url(SPEECH_PANE_URL, None::<&str>)
+            .map_err(|e| format!("Failed to open System Settings: {e}"))
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = app;
+        Err("Not supported on this platform".to_string())
+    }
+}
+
 /// Transcribe a 16 kHz mono 16-bit PCM WAV file with the OS speech engine.
 /// Offline-first: on-device recognition is preferred on both platforms.
 #[tauri::command]

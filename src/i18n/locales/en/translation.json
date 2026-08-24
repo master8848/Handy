@@ -286,7 +286,8 @@
         "description": "Keep several models in memory so you can switch instantly and compare transcriptions. Uses more RAM."
       },
       "osSpeech": {
-        "authRequired": "Permission needed to use device speech recognition",
+        "authRequired": "Permission needed to use device speech recognition. Open System Settings → Privacy & Security → Speech Recognition and enable Handy.",
+        "openSystemSettings": "Open System Settings",
         "grantPermission": "Grant Permission",
         "retry": "Retry",
         "learnMoreSpeech": "Speech Recognition guide",
@@ -845,6 +846,7 @@
     "noModel": "No transcription model selected",
     "noModelDescription": "Choose or download a model in the Models tab, or use the device's built-in speech recognition — no download needed.",
     "useOnDevice": "Use device speech recognition",
+    "useOnDeviceFailed": "Couldn\u2019t enable device speech recognition",
     "micError": "Couldn't start recording: {{error}}",
     "empty": "No speech detected.",
     "copied": "Copied to clipboard",
@@ -885,6 +887,7 @@
     "noModel": "No transcription model selected",
     "noModelDescription": "Choose or download a model in the Models tab, or use the device's built-in speech recognition — no download needed.",
     "useOnDevice": "Use device speech recognition",
+    "useOnDeviceFailed": "Couldn\u2019t enable device speech recognition",
     "grantAccessHelp": "How to grant access",
     "history": {
       "title": "Pasted prompts",

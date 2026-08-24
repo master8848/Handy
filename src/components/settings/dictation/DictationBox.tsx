@@ -149,11 +149,26 @@ export const DictationBox: React.FC = () => {
     textareaRef.current?.focus();
   };
 
+  const handleOpenSpeechSettings = async () => {
+    try {
+      await commands.openSpeechRecognitionSettings();
+    } catch (err) {
+      console.error("Failed to open speech recognition settings:", err);
+    }
+  };
+
   const handleUseOnDevice = async () => {
     setGrantingPermission(true);
     try {
       await commands.osSpeechRequestAuthorization();
-      await selectModel("os-speech");
+      const ok = await selectModel("os-speech");
+      if (!ok) {
+        // Previously-denied permission: requestAuthorization() resolves
+        // immediately without prompting, so guide the user to System Settings.
+        toast.error(t("dictation.useOnDeviceFailed"), {
+          description: t("settings.models.osSpeech.authRequired"),
+        });
+      }
     } catch (err) {
       console.error("Failed to request OS speech authorization:", err);
     } finally {
@@ -180,19 +195,28 @@ export const DictationBox: React.FC = () => {
             </p>
           </div>
           {osSpeechAvailable && (
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={grantingPermission}
-              onClick={handleUseOnDevice}
-              className="shrink-0"
-            >
-              {grantingPermission ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                t("dictation.useOnDevice")
-              )}
-            </Button>
+            <div className="flex flex-col items-end gap-1.5 shrink-0">
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={grantingPermission}
+                onClick={handleUseOnDevice}
+                className="shrink-0"
+              >
+                {grantingPermission ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  t("dictation.useOnDevice")
+                )}
+              </Button>
+              <button
+                type="button"
+                onClick={handleOpenSpeechSettings}
+                className="flex items-center gap-1 text-xs text-logo-primary hover:underline"
+              >
+                {t("settings.models.osSpeech.openSystemSettings")}
+              </button>
+            </div>
           )}
         </div>
       )}

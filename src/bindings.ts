@@ -1010,6 +1010,21 @@ async osSpeechRequestAuthorization() : Promise<boolean> {
     return await TAURI_INVOKE("os_speech_request_authorization");
 },
 /**
+ * Open the OS speech-recognition permission pane directly.
+ *
+ * macOS deep-links into System Settings → Privacy & Security → Speech
+ * Recognition so users don't have to hunt for it. Other platforms are no-ops
+ * (Windows has no dedicated OS speech permission).
+ */
+async openSpeechRecognitionSettings() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("open_speech_recognition_settings") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Transcribe a 16 kHz mono 16-bit PCM WAV file with the OS speech engine.
  * Offline-first: on-device recognition is preferred on both platforms.
  */

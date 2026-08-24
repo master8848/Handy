@@ -516,11 +516,26 @@ export const Home: React.FC<SettingsSectionProps> = ({ onNavigate }) => {
     hidePopover();
   };
 
+  const handleOpenSpeechSettings = async () => {
+    try {
+      await commands.openSpeechRecognitionSettings();
+    } catch (err) {
+      console.error("Failed to open speech recognition settings:", err);
+    }
+  };
+
   const handleUseOnDevice = async () => {
     setGrantingPermission(true);
     try {
       await commands.osSpeechRequestAuthorization();
-      await selectModel("os-speech");
+      const ok = await selectModel("os-speech");
+      if (!ok) {
+        // Previously-denied permission: requestAuthorization() resolves
+        // immediately without prompting, so guide the user to System Settings.
+        toast.error(t("home.useOnDeviceFailed"), {
+          description: t("settings.models.osSpeech.authRequired"),
+        });
+      }
     } catch (err) {
       console.error("Failed to request OS speech authorization:", err);
     } finally {
@@ -671,6 +686,13 @@ export const Home: React.FC<SettingsSectionProps> = ({ onNavigate }) => {
                 )}
               </Button>
             )}
+            <button
+              type="button"
+              onClick={handleOpenSpeechSettings}
+              className="flex items-center gap-1 text-xs text-logo-primary hover:underline"
+            >
+              {t("settings.models.osSpeech.openSystemSettings")}
+            </button>
             <button
               type="button"
               onClick={() => openUrl(SPEECH_RECOGNITION_HELP_URL)}
