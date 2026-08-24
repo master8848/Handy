@@ -1408,10 +1408,9 @@ pub fn change_overlay_native_enabled_setting(
 ) -> Result<(), String> {
     let mut settings = settings::get_settings(&app);
     settings.overlay_native_enabled = enabled;
+    let overlay_enabled = settings.overlay_style != crate::settings::OverlayStyle::None;
     settings::write_settings(&app, settings);
     // Keep cached flag in sync without restart (lib.rs startup also syncs)
-    crate::overlay::update_overlay_enabled_cache(
-        settings.overlay_style != crate::settings::OverlayStyle::None,
-    );
+    crate::overlay::update_overlay_enabled_cache(overlay_enabled);
     Ok(())
 }

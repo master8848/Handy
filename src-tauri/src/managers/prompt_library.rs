@@ -61,7 +61,7 @@ static MIGRATIONS: &[M] = &[
     INSERT INTO folders (name, color, sort_order, created_at) VALUES ('Imported', NULL, 0, strftime('%s','now')) ON CONFLICT(name) DO NOTHING;",
     ),
     M::up(
-        "CREATE VIRTUAL TABLE IF NOT EXISTS prompt_fts USING fts5(title, content, tags, content='prompts', content_rowid='id', tokenize='unicode61 \"remove_diacritics 1\"');\n\
+        "CREATE VIRTUAL TABLE IF NOT EXISTS prompt_fts USING fts5(title, content, tags, content='prompts', content_rowid='id', tokenize='unicode61 remove_diacritics 1');\n\
          CREATE TRIGGER IF NOT EXISTS prompt_ai AFTER INSERT ON prompts BEGIN\n\
            INSERT INTO prompt_fts(rowid, title, content, tags) VALUES (new.id, new.title, new.content, (SELECT GROUP_CONCAT(t.name, ' ') FROM tags t JOIN prompt_tags pt ON pt.tag_id=t.id WHERE pt.prompt_id=new.id));\n\
          END;\n\
