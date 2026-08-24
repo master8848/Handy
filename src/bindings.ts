@@ -659,6 +659,19 @@ async openAppDataDir() : Promise<Result<null, string>> {
 }
 },
 /**
+ * Open (or focus) an auxiliary app window. The frontend renders a different
+ * layout per window based on the `?view=` query parameter baked into the URL:
+ * `settings` → settings-only sidebar, `studio` → prompt library + history.
+ */
+async openAppWindow(view: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("open_app_window", { view }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Check if Apple Intelligence is available on this device.
  * Called by the frontend when the user selects Apple Intelligence provider.
  */

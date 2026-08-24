@@ -34,6 +34,27 @@ import { TranscribeFiles } from "./transcribe/TranscribeFiles";
 
 export type SidebarSection = keyof typeof SECTIONS_CONFIG;
 
+/** Auxiliary window views that render a filtered sidebar (via `?view=`). */
+export type WindowView = "settings" | "studio";
+
+/**
+ * Sections shown per auxiliary window view, in display order. The main window
+ * uses the tab bar instead and passes no filter.
+ */
+export const WINDOW_SECTIONS: Record<WindowView, readonly SidebarSection[]> = {
+  settings: [
+    "general",
+    "appearance",
+    "history",
+    "models",
+    "advanced",
+    "postprocessing",
+    "debug",
+    "about",
+  ],
+  studio: ["prompt-library", "prompt-history"],
+};
+
 interface IconProps {
   width?: number | string;
   height?: number | string;
@@ -129,16 +150,22 @@ export const SECTIONS_CONFIG = {
 interface SidebarProps {
   activeSection: SidebarSection;
   onSectionChange: (section: SidebarSection) => void;
+  /** Restrict the sidebar to these sections (e.g. settings/studio windows). */
+  sections?: readonly SidebarSection[];
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   activeSection,
   onSectionChange,
+  sections,
 }) => {
   const { t } = useTranslation();
   const { settings } = useSettings();
 
   const availableSections = Object.entries(SECTIONS_CONFIG)
+    .filter(([id, config]) =>
+      sections ? sections.includes(id as SidebarSection) : true,
+    )
     .filter(([_, config]) => config.enabled(settings))
     .map(([id, config]) => ({ id: id as SidebarSection, ...config }));
 

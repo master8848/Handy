@@ -13,15 +13,35 @@ import AccessibilityPermissions from "./components/AccessibilityPermissions";
 import SecureInputWarning from "./components/SecureInputWarning";
 import Footer from "./components/footer";
 import Onboarding, { AccessibilityOnboarding } from "./components/onboarding";
-import { Sidebar, SidebarSection, SECTIONS_CONFIG } from "./components/Sidebar";
+import {
+  Sidebar,
+  SidebarSection,
+  SECTIONS_CONFIG,
+  WINDOW_SECTIONS,
+  type WindowView,
+} from "./components/Sidebar";
+import { TopTabBar, type MainTab } from "./components/TopTabBar";
+import { PromptWorkbench } from "./components/prompt-workbench/PromptWorkbench";
+import { TranscribeFiles } from "./components/transcribe/TranscribeFiles";
 import { WhatsNewGate } from "./components/whats-new";
 import { PromptPalette } from "./components/prompt-library/PromptPalette";
+import { Home } from "./components/settings";
 import { useSettings } from "./hooks/useSettings";
 import { useSettingsStore } from "./stores/settingsStore";
 import { commands } from "@/bindings";
 import { getLanguageDirection, initializeRTL } from "@/lib/utils/rtl";
 
 type OnboardingStep = "accessibility" | "model" | "done";
+
+/**
+ * Auxiliary window views are selected via the `?view=` query parameter baked
+ * into the window URL by the `open_app_window` command. No param = main
+ * window, which uses the top tab bar instead of a sidebar.
+ */
+const getWindowView = (): WindowView | null => {
+  const view = new URLSearchParams(window.location.search).get("view");
+  return view === "settings" || view === "studio" ? view : null;
+};
 
 const renderSettingsContent = (
   section: SidebarSection,
@@ -34,13 +54,19 @@ const renderSettingsContent = (
 
 function App() {
   const { t, i18n } = useTranslation();
+  // Fixed for the lifetime of the window — the view comes from the URL.
+  const [windowView] = useState<WindowView | null>(getWindowView);
+  const isMainWindow = windowView === null;
   const [onboardingStep, setOnboardingStep] = useState<OnboardingStep | null>(
-    null,
+    isMainWindow ? null : "done",
   );
   // Track if this is a returning user who just needs to grant permissions
   // (vs a new user who needs full onboarding including model selection)
   const [isReturningUser, setIsReturningUser] = useState(false);
-  const [currentSection, setCurrentSection] = useState<SidebarSection>("home");
+  const [currentSection, setCurrentSection] = useState<SidebarSection>(
+    windowView === "studio" ? "prompt-library" : "general",
+  );
+  const [activeTab, setActiveTab] = useState<MainTab>("dictate");
   const { settings, updateSetting } = useSettings();
   const direction = getLanguageDirection(i18n.language);
   const refreshAudioDevices = useSettingsStore(
@@ -51,18 +77,28 @@ function App() {
   );
   const hasCompletedPostOnboardingInit = useRef(false);
 
+  // Onboarding status only matters in the main window; settings/studio
+  // windows opened before onboarding completes render their content directly.
   useEffect(() => {
-    checkOnboardingStatus();
-  }, []);
+    if (isMainWindow) {
+      checkOnboardingStatus();
+    }
+  }, [isMainWindow]);
 
   // Initialize RTL direction when language changes
   useEffect(() => {
     initializeRTL(i18n.language);
   }, [i18n.language]);
 
-  // Initialize Enigo, shortcuts, and refresh audio devices when main app loads
+  // Initialize Enigo, shortcuts, and refresh audio devices when the main
+  // window app shell loads (main window only — secondary windows don't own
+  // global initialization).
   useEffect(() => {
-    if (onboardingStep === "done" && !hasCompletedPostOnboardingInit.current) {
+    if (
+      isMainWindow &&
+      onboardingStep === "done" &&
+      !hasCompletedPostOnboardingInit.current
+    ) {
       hasCompletedPostOnboardingInit.current = true;
       Promise.all([
         commands.initializeEnigo(),
@@ -73,10 +109,16 @@ function App() {
       refreshAudioDevices();
       refreshOutputDevices();
     }
-  }, [onboardingStep, refreshAudioDevices, refreshOutputDevices]);
+  }, [
+    isMainWindow,
+    onboardingStep,
+    refreshAudioDevices,
+    refreshOutputDevices,
+  ]);
 
-  // Handle keyboard shortcuts for debug mode toggle
+  // Handle keyboard shortcuts for debug mode toggle (main window only)
   useEffect(() => {
+    if (!isMainWindow) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       // Check for Ctrl+Shift+D (Windows/Linux) or Cmd+Shift+D (macOS)
       const isDebugShortcut =
@@ -98,7 +140,7 @@ function App() {
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [settings?.debug_mode, updateSetting]);
+  }, [isMainWindow, settings?.debug_mode, updateSetting]);
 
   // Listen for recording errors from the backend and show a toast
   useEffect(() => {
@@ -182,6 +224,25 @@ function App() {
       console.warn("Failed to show main window for permission onboarding:", e);
     }
   };
+
+  // In the main window there is no sidebar; deep-links from tab content into
+  // prompt-library / settings sections open their dedicated windows instead.
+  const handleMainWindowNavigate = (section: SidebarSection) => {
+    if (section === "prompt-library" || section === "prompt-history") {
+      commands.openAppWindow("studio").catch((e) => {
+        console.warn("Failed to open prompt studio window:", e);
+      });
+      return;
+    }
+    if (!["home", "transcribe"].includes(section)) {
+      commands.openAppWindow("settings").catch((e) => {
+        console.warn("Failed to open settings window:", e);
+      });
+    }
+  };
+
+  const openStudioWindow = () => handleMainWindowNavigate("prompt-library");
+  const openSettingsWindow = () => handleMainWindowNavigate("general");
 
   const checkOnboardingStatus = async () => {
     try {
@@ -289,7 +350,7 @@ function App() {
     />
   );
 
-  // Still checking onboarding status
+  // Still checking onboarding status (main window only)
   if (onboardingStep === null) {
     return null;
   }
@@ -304,7 +365,7 @@ function App() {
     );
   } else if (onboardingStep === "model") {
     content = <Onboarding onModelSelected={handleModelSelected} />;
-  } else {
+  } else if (isMainWindow) {
     content = (
       <div
         dir={direction}
@@ -312,17 +373,57 @@ function App() {
       >
         <WhatsNewGate />
         {/* Main content area that takes remaining space */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Affinity-style top tab bar: Dictate | Prompt | Transcribe */}
+          <TopTabBar
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            onOpenStudio={openStudioWindow}
+            onOpenSettings={openSettingsWindow}
+          />
+          {/* Scrollable content area */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="flex flex-col items-center p-4 gap-4">
+              <AccessibilityPermissions />
+              <SecureInputWarning />
+              {activeTab === "dictate" && (
+                <Home showTitle={false} onNavigate={handleMainWindowNavigate} />
+              )}
+              {activeTab === "prompt" && <PromptWorkbench />}
+              {activeTab === "transcribe" && <TranscribeFiles />}
+            </div>
+          </div>
+        </div>
+        {/* Fixed footer at bottom */}
+        <Footer />
+      </div>
+    );
+  } else {
+    // Settings / prompt studio auxiliary windows: sidebar layout restricted to
+    // their own sections.
+    const sidebarSections = windowView
+      ? WINDOW_SECTIONS[windowView]
+      : undefined;
+    const fallbackSection = sidebarSections?.[0] ?? "general";
+    const activeSection = sidebarSections?.includes(currentSection)
+      ? currentSection
+      : fallbackSection;
+    content = (
+      <div
+        dir={direction}
+        className="h-screen flex flex-col select-none cursor-default"
+      >
+        {/* Main content area that takes remaining space */}
         <div className="flex-1 flex overflow-hidden">
           <Sidebar
-            activeSection={currentSection}
+            activeSection={activeSection}
             onSectionChange={setCurrentSection}
+            sections={sidebarSections}
           />
           {/* Scrollable content area */}
           <div className="flex-1 flex flex-col overflow-hidden">
             <div className="flex-1 overflow-y-auto">
               <div className="flex flex-col items-center p-4 gap-4">
-                <AccessibilityPermissions />
-                <SecureInputWarning />
                 {renderSettingsContent(currentSection, setCurrentSection)}
               </div>
             </div>

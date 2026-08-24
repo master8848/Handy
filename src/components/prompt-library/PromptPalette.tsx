@@ -18,14 +18,30 @@ export const PromptPalette: React.FC = () => {
   const debounceRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const unlisten = listen("prompt-library:open-palette", () => {
+    const openPalette = () => {
       setOpen(true);
-      commands.listPrompts({ search: null, folder_id: null, tag: null, pinned_only: null, sort: "updatedDesc", limit: null, offset: null }).then((res) => {
-        if (res.status === "ok") setPrompts(res.data);
-      });
-    });
+      commands
+        .listPrompts({
+          search: null,
+          folder_id: null,
+          tag: null,
+          pinned_only: null,
+          sort: "updatedDesc",
+          limit: null,
+          offset: null,
+        })
+        .then((res) => {
+          if (res.status === "ok") setPrompts(res.data);
+        });
+    };
+    // Backend event (global shortcut) plus a same-window DOM event so views
+    // like the Prompt Workbench can open the palette without round-tripping
+    // through Rust.
+    const unlisten = listen("prompt-library:open-palette", openPalette);
+    window.addEventListener("handy:open-palette", openPalette);
     return () => {
       unlisten.then((fn) => fn());
+      window.removeEventListener("handy:open-palette", openPalette);
     };
   }, []);
 

@@ -118,6 +118,55 @@ pub fn open_app_data_dir(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+/// Open (or focus) an auxiliary app window. The frontend renders a different
+/// layout per window based on the `?view=` query parameter baked into the URL:
+/// `settings` → settings-only sidebar, `studio` → prompt library + history.
+#[specta::specta]
+#[tauri::command]
+pub fn open_app_window(app: AppHandle, view: String) -> Result<(), String> {
+    let (label, url, title) = match view.as_str() {
+        "settings" => ("settings", "/?view=settings", "Handy Settings"),
+        "studio" => ("studio", "/?view=studio", "Handy Prompt Studio"),
+        other => return Err(format!("Unknown app window view: {}", other)),
+    };
+
+    if let Some(window) = app.get_webview_window(label) {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+        return Ok(());
+    }
+
+    let mut win_builder =
+        tauri::WebviewWindowBuilder::new(&app, label, tauri::WebviewUrl::App(url.into()))
+            .title(title)
+            .inner_size(700.0, 600.0)
+            .min_inner_size(560.0, 480.0)
+            .resizable(true)
+            .maximizable(true)
+            .visible(false);
+
+    // Same portable-mode redirect as `ensure_main_window` in lib.rs: keeps the
+    // WebView2 cache inside the portable Data directory instead of the user profile.
+    if let Some(data_dir) = crate::portable::data_dir() {
+        win_builder = win_builder.data_directory(data_dir.join("webview"));
+    }
+
+    win_builder.build().map_err(|e| e.to_string())?;
+
+    if let Some(window) = app.get_webview_window(label) {
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
+    }
+
+    Ok(())
+}
+
 /// Check if Apple Intelligence is available on this device.
 /// Called by the frontend when the user selects Apple Intelligence provider.
 #[specta::specta]

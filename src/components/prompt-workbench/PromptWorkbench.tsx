@@ -6,36 +6,29 @@ import Placeholder from "@tiptap/extension-placeholder";
 import {
   Clipboard,
   Eraser,
-  ExternalLink,
+  FileText,
   Loader2,
   Mic,
-  NotebookPen,
   Send,
 } from "lucide-react";
 import { toast } from "sonner";
-import { openUrl } from "@tauri-apps/plugin-opener";
 import { commands } from "@/bindings";
 import type { SpellingIssue } from "@/bindings";
-import { useModelStore } from "@/stores/modelStore";
-import { usePromptDraftStore } from "@/stores/promptDraftStore";
 import { useSettings } from "@/hooks/useSettings";
 import { Button } from "@/components/ui/Button";
 import { PromptFormatToolbar } from "@/components/shared";
-import type { SettingsSectionProps } from "@/lib/types/navigation";
+import { useWorkbenchDraftStore } from "@/stores/workbenchDraftStore";
+import { usePromptDraftStore } from "@/stores/promptDraftStore";
 import {
   positionsFromOffsets,
   spellIssueCache,
   SpellCheckExtension,
   SPELL_CHECK_META,
-} from "./spellCheckExtension";
+} from "@/components/settings/home/spellCheckExtension";
 import { SPELL_CHECK_DEBOUNCE_MS } from "@/lib/constants/debounce";
 
 const SPELL_HOVER_DELAY_MS = 250;
 const PROMPT_AUTO_SAVE_DEBOUNCE_MS = 1500;
-
-// Apple guide for the macOS permission the OS speech model needs.
-const SPEECH_RECOGNITION_HELP_URL =
-  "https://support.apple.com/guide/mac-help/control-access-to-speech-recognition-on-mac-mchl48fbbd25/mac";
 
 type DictationPhase = "idle" | "recording" | "transcribing";
 
@@ -45,22 +38,21 @@ const formatElapsed = (seconds: number): string => {
   return `${mins}:${String(secs).padStart(2, "0")}`;
 };
 
-export const Home: React.FC<
-  SettingsSectionProps & {
-    /** Hide the "Prompt Studio" heading (used when embedded as the Dictate tab). */
-    showTitle?: boolean;
-  }
-> = ({ onNavigate, showTitle = true }) => {
+/**
+ * Prompt Workbench: the "Prompt" tab of the main window. A large full-width
+ * tiptap canvas (styled after the Transcribe tab) with the shared format
+ * toolbar on top and mic / Copy / Clear / Paste actions below. The draft is
+ * kept in `useWorkbenchDraftStore` so it survives tab switches, and non-empty
+ * text auto-saves to the pasted-prompts history like the dictation box does.
+ */
+export const PromptWorkbench: React.FC = () => {
   const { t } = useTranslation();
   const { settings, updateSetting } = useSettings();
-  const { currentModel, models, selectModel } = useModelStore();
 
   const [phase, setPhase] = useState<DictationPhase>("idle");
   const [error, setError] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [pasting, setPasting] = useState(false);
-  const [osSpeechAvailable, setOsSpeechAvailable] = useState(false);
-  const [grantingPermission, setGrantingPermission] = useState(false);
 
   // Plain text of the editor (raw doc textContent), driving the debounced
   // spell check, auto-save, and button disable states.
@@ -75,18 +67,20 @@ export const Home: React.FC<
   const editor = useEditor({
     extensions: [
       StarterKit,
-      Placeholder.configure({ placeholder: t("home.placeholder") }),
+      Placeholder.configure({ placeholder: t("workbench.placeholder") }),
       SpellCheckExtension,
     ],
     content: "",
     editorProps: {
       attributes: {
-        class: "ptap-body",
+        class: "ptap-body ptap-workbench",
         spellcheck: "false",
       },
     },
     onUpdate: ({ editor }) => {
-      setDocText(editor.state.doc.textContent);
+      const text = editor.state.doc.textContent;
+      setDocText(text);
+      useWorkbenchDraftStore.getState().setDraftHtml(editor.getHTML());
     },
     onTransaction: ({ editor }) => {
       setEditorVersion((version) => version + 1);
@@ -106,24 +100,31 @@ export const Home: React.FC<
   const checkSeqRef = useRef(0);
   const autoSaveRef = useRef<number | null>(null);
 
-  const hasUsableModel =
-    !!currentModel && models.some((model) => model.is_downloaded);
+  // Restore the persisted draft once the editor exists.
+  useEffect(() => {
+    if (!editor) return;
+    const draftHtml = useWorkbenchDraftStore.getState().draftHtml;
+    if (draftHtml) {
+      editor.commands.setContent(draftHtml);
+      setDocText(editor.state.doc.textContent);
+      editor.commands.focus("end");
+    }
+  }, [editor]);
 
   // Pick up a prompt handed over from the history page ("reuse").
   useEffect(() => {
     const draft = usePromptDraftStore.getState().consumeDraft();
     if (draft && editor) {
       editor.commands.setContent(draft);
-      setDocText(draft);
+      setDocText(editor.state.doc.textContent);
+      useWorkbenchDraftStore.getState().setDraftHtml(editor.getHTML());
       editor.commands.focus("end");
     }
   }, [editor]);
 
-  // Auto-save written prompts to history. Runs only while the box holds
-  // non-empty text and the user has stopped typing for the debounce window;
-  // the backend dedupes against the most recent entry, so editing a prompt
-  // bumps its entry instead of creating copies. Dictation inserts go through
-  // the same text change and are saved too.
+  // Auto-save written prompts to history (same contract as the dictation box):
+  // runs only while the canvas holds non-empty text and typing has settled;
+  // the backend dedupes against the most recent entry.
   useEffect(() => {
     if (autoSaveRef.current) {
       window.clearTimeout(autoSaveRef.current);
@@ -154,22 +155,6 @@ export const Home: React.FC<
     return () => clearInterval(interval);
   }, [phase]);
 
-  // Check whether the OS speech engine is available for the no-model hint
-  useEffect(() => {
-    let cancelled = false;
-    commands
-      .osSpeechAvailable()
-      .then((available) => {
-        if (!cancelled) setOsSpeechAvailable(available);
-      })
-      .catch((err) => {
-        console.error("Failed to check OS speech availability:", err);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   // Cancel any in-flight dictation when the component unmounts
   useEffect(() => {
     const phaseAtUnmount = phase;
@@ -180,11 +165,7 @@ export const Home: React.FC<
     };
   }, [phase]);
 
-  // Debounced spell check of the editor text. Runs only when spell checking is
-  // enabled; a stale-response guard drops results that outlive their text.
-  // Fresh issues are cached for the decoration extension and the popover, then
-  // pushed into the editor with a meta transaction that rebuilds the
-  // wavy-underline decorations.
+  // Debounced spell check of the editor text (same behavior as Home).
   useEffect(() => {
     if (debounceRef.current) {
       window.clearTimeout(debounceRef.current);
@@ -226,8 +207,8 @@ export const Home: React.FC<
     };
   }, [docText, settings?.spell_check_enabled, editor]);
 
-  // Hide the suggestion popover on any scroll (editor or page), since the
-  // word it anchors to moves with the text.
+  // Hide the suggestion popover on any scroll, since the word it anchors to
+  // moves with the text.
   useEffect(() => {
     const hideOnScroll = () => {
       if (hoverTimerRef.current) {
@@ -241,7 +222,7 @@ export const Home: React.FC<
     return () => window.removeEventListener("scroll", hideOnScroll, true);
   }, []);
 
-  // The text changed — the underline positions moved, so drop the popover.
+  // The text changed — underline positions moved — so drop the popover.
   useEffect(() => {
     if (hoverTimerRef.current) {
       window.clearTimeout(hoverTimerRef.current);
@@ -260,7 +241,6 @@ export const Home: React.FC<
     };
   }, []);
 
-  // Issue whose underlined span's (viewport-space) rect contains the point.
   const issueAtPoint = (
     clientX: number,
     clientY: number,
@@ -312,9 +292,7 @@ export const Home: React.FC<
     setActiveIssue(issue);
   };
 
-  // Word-like hover behavior: a short delay before opening so the popover
-  // doesn't chase the cursor across underlined text mid-selection.
-  const handlePromptMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
+  const handleEditorMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
     const popover = popoverRef.current;
     if (popover) {
       const rect = popover.getBoundingClientRect();
@@ -337,16 +315,13 @@ export const Home: React.FC<
       setPopoverPos(null);
       return;
     }
-    hoverTimerRef.current = window.setTimeout(() => {
-      hoverTimerRef.current = null;
-      showPopoverFor(issue);
-    }, SPELL_HOVER_DELAY_MS);
+    hoverTimerRef.current = window.setTimeout(
+      () => showPopoverFor(issue),
+      SPELL_HOVER_DELAY_MS,
+    );
   };
 
-  // Clicking an underlined word opens its suggestions (like Word); clicking
-  // anywhere else in the box closes the popover.
   const handleEditorMouseUp = (event: React.MouseEvent<HTMLDivElement>) => {
-    // A release inside the popover must not dismiss it before the click.
     if (popoverRef.current?.contains(event.target as Node)) return;
     const issue = issueAtPoint(event.clientX, event.clientY);
     if (issue) {
@@ -356,8 +331,8 @@ export const Home: React.FC<
     }
   };
 
-  // Keep the popover on-screen: flip above the word when it would overflow
-  // the bottom edge, clamp to the right edge.
+  // Keep the popover on-screen: flip above when it would overflow the bottom,
+  // clamp to the right edge.
   useLayoutEffect(() => {
     const popover = popoverRef.current;
     const anchor = anchorRectRef.current;
@@ -443,10 +418,7 @@ export const Home: React.FC<
   const handleClear = () => {
     editor?.chain().focus().clearContent().run();
     setDocText("");
-    setIssuesCleared();
-  };
-
-  const setIssuesCleared = () => {
+    useWorkbenchDraftStore.getState().setDraftHtml("");
     spellIssueCache.issues = [];
     if (editor) {
       editor.view.dispatch(editor.state.tr.setMeta(SPELL_CHECK_META, true));
@@ -484,91 +456,20 @@ export const Home: React.FC<
     hidePopover();
   };
 
-  const handleOpenSpeechSettings = async () => {
-    try {
-      await commands.openSpeechRecognitionSettings();
-    } catch (err) {
-      console.error("Failed to open speech recognition settings:", err);
-    }
+  const openPalette = () => {
+    window.dispatchEvent(new Event("handy:open-palette"));
   };
 
-  const handleUseOnDevice = async () => {
-    setGrantingPermission(true);
-    try {
-      await commands.osSpeechRequestAuthorization();
-      const ok = await selectModel("os-speech");
-      if (!ok) {
-        // Previously-denied permission: requestAuthorization() resolves
-        // immediately without prompting, so guide the user to System Settings.
-        toast.error(t("home.useOnDeviceFailed"), {
-          description: t("settings.models.osSpeech.authRequired"),
-        });
-      }
-    } catch (err) {
-      console.error("Failed to request OS speech authorization:", err);
-    } finally {
-      setGrantingPermission(false);
-    }
-  };
-
-  // Re-render hook for the format toolbar: transactions (including pure
-  // selection moves) bump `editorVersion`, which refreshes active states.
+  // Refresh hook for the format toolbar active states.
   void editorVersion;
 
   return (
-    <div className="max-w-3xl w-full mx-auto space-y-6">
-      {showTitle && (
-        <h1 className="text-xl font-semibold mb-2">{t("home.title")}</h1>
-      )}
-
-      {/* No usable model hint — the OS speech engine needs no download */}
-      {!hasUsableModel && (
-        <div className="flex items-center justify-between gap-3 p-3 rounded-lg border border-warning/40 bg-warning/10">
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-text/80">
-              {t("home.noModel")}
-            </p>
-            <p className="text-sm text-text/60">
-              {t("home.noModelDescription")}
-            </p>
-          </div>
-          <div className="flex flex-col items-end gap-1.5 shrink-0">
-            {osSpeechAvailable && (
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={grantingPermission}
-                onClick={handleUseOnDevice}
-                className="shrink-0"
-              >
-                {grantingPermission ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  t("home.useOnDevice")
-                )}
-              </Button>
-            )}
-            <button
-              type="button"
-              onClick={handleOpenSpeechSettings}
-              className="flex items-center gap-1 text-xs text-logo-primary hover:underline"
-            >
-              {t("settings.models.osSpeech.openSystemSettings")}
-            </button>
-            <button
-              type="button"
-              onClick={() => openUrl(SPEECH_RECOGNITION_HELP_URL)}
-              className="flex items-center gap-1 text-xs text-logo-primary hover:underline"
-            >
-              <ExternalLink className="w-3 h-3" />
-              {t("home.grantAccessHelp")}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Top row: spell-check toggle + link to the pasted-prompts page */}
+    <div className="w-full max-w-5xl mx-auto space-y-4">
       <div className="flex items-center justify-between gap-2">
+        <p className="text-sm font-medium flex items-center gap-2">
+          <FileText className="w-4 h-4" />
+          {t("workbench.title")}
+        </p>
         <label className="flex items-center gap-2 text-sm text-text/60 cursor-pointer select-none">
           <input
             type="checkbox"
@@ -581,23 +482,14 @@ export const Home: React.FC<
           <div className="relative w-9 h-5 bg-mid-gray/20 rounded-full transition-colors peer-checked:bg-background-ui after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
           {t("home.spellCheck")}
         </label>
-        <button
-          type="button"
-          onClick={() => onNavigate?.("prompt-history")}
-          title={t("home.history.open")}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium text-text/60 hover:bg-mid-gray/10 hover:text-text transition-colors"
-        >
-          <NotebookPen className="w-4 h-4" />
-          {t("home.history.title")}
-        </button>
       </div>
 
-      {/* Prompt editor with format toolbar and Harper underline decorations */}
+      {/* Full-width editing canvas */}
       <div
-        onMouseMove={handlePromptMouseMove}
+        onMouseMove={handleEditorMouseMove}
         onMouseLeave={hidePopover}
         onMouseUp={handleEditorMouseUp}
-        className="relative rounded-md bg-mid-gray/10 border border-mid-gray/80 transition-[background-color,border-color] duration-150 hover:bg-logo-primary/10 hover:border-logo-primary focus-within:bg-logo-primary/10 focus-within:border-logo-primary"
+        className="rounded-xl bg-mid-gray/10 border border-mid-gray/30 transition-colors focus-within:border-logo-primary hover:border-mid-gray/60 flex flex-col min-h-[50vh]"
       >
         <PromptFormatToolbar editor={editor} />
         <EditorContent editor={editor} />
@@ -627,7 +519,7 @@ export const Home: React.FC<
 
       {error && <p className="text-sm text-red-400">{error}</p>}
 
-      {/* Toolbar */}
+      {/* Actions row */}
       <div className="flex items-center gap-2 flex-wrap">
         <Button
           variant={phase === "recording" ? "danger" : "primary"}
@@ -666,6 +558,10 @@ export const Home: React.FC<
         )}
 
         <div className="flex-1" />
+
+        <Button variant="secondary" size="sm" onClick={openPalette}>
+          {t("workbench.insertFromLibrary")}
+        </Button>
 
         <Button
           variant="secondary"

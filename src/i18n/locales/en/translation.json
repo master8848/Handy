@@ -25,6 +25,11 @@
     "about": "About",
     "transcribe": "Transcribe"
   },
+  "tabs": {
+    "dictate": "Dictate",
+    "prompt": "Prompt",
+    "transcribe": "Transcribe"
+  },
   "promptLibrary": {
     "title": "Prompt Library",
     "description": "Manage, organize and insert your prompts.",
@@ -855,6 +860,8 @@
   },
   "home": {
     "title": "Prompt Studio",
+    "openPromptLibrary": "Open Prompt Library",
+    "openSettings": "Open Settings",
     "description": "Write prompts here, review them with the built-in spell and grammar checker, then paste them into any app. Every paste is logged below so you always know what was sent and when.",
     "placeholder": "Write your prompt here — or dictate it with the mic…",
     "startRecording": "Start dictation",
@@ -906,6 +913,11 @@
       "delete": "Delete prompt",
       "deleteFailed": "Couldn't delete the prompt"
     }
+  },
+  "workbench": {
+    "title": "Prompt Workbench",
+    "placeholder": "Write your prompt here — or dictate it with the mic…",
+    "insertFromLibrary": "Insert from Library"
   },
   "transcribe": {
     "dropTitle": "Drop an audio file to transcribe",

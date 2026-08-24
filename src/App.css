@@ -88,6 +88,12 @@
   white-space: pre-wrap;
   word-break: break-word;
 }
+/* Prompt Workbench canvas: full-width, fills the tab instead of capping at 40vh */
+.ptap-body.ptap-workbench {
+  min-height: 50vh;
+  max-height: none;
+  flex: 1;
+}
 .ptap-body p {
   margin: 0;
 }
