@@ -208,7 +208,7 @@ pub struct PromptFilter {
 }
 
 pub struct PromptLibraryManager {
-    app_handle: AppHandle,
+    app_handle: Option<AppHandle>,
     db_path: PathBuf,
 }
 
@@ -217,11 +217,41 @@ impl PromptLibraryManager {
         let app_data_dir = crate::portable::app_data_dir(app_handle)?;
         let db_path = app_data_dir.join("prompt_library.db");
         let manager = Self {
-            app_handle: app_handle.clone(),
+            app_handle: Some(app_handle.clone()),
             db_path,
         };
         manager.init_database()?;
         Ok(manager)
+    }
+
+    /// Open without an AppHandle (for headless CLI — no events emitted).
+    pub fn open_standalone(db_path: PathBuf) -> Result<Self> {
+        let manager = Self {
+            app_handle: None,
+            db_path,
+        };
+        manager.init_database()?;
+        Ok(manager)
+    }
+
+    /// Resolve the portable-aware DB path without needing an AppHandle.
+    pub fn standalone_db_path() -> PathBuf {
+        if let Some(dir) = crate::portable::data_dir() {
+            dir.join("prompt_library.db")
+        } else {
+            // Fallback: will be resolved via AppHandle path when available;
+            // standalone callers without portable mode should pass an explicit path.
+            // This path is best-effort for CLI fallback.
+            std::env::temp_dir().join("handy_prompt_library.db")
+        }
+    }
+
+    fn emit(&self, payload: PromptLibraryUpdatePayload) {
+        if let Some(handle) = &self.app_handle {
+            if let Err(e) = payload.emit(handle) {
+                error!("Failed to emit prompt library event: {}", e);
+            }
+        }
     }
 
     fn init_database(&self) -> Result<()> {
@@ -267,7 +297,13 @@ impl PromptLibraryManager {
     }
 
     fn migrate_legacy_if_needed(&self, conn: &Connection) -> Result<()> {
-        let app_data_dir = crate::portable::app_data_dir(&self.app_handle)?;
+        let app_data_dir = if let Some(handle) = &self.app_handle {
+            crate::portable::app_data_dir(handle)?
+        } else if let Some(dir) = crate::portable::data_dir() {
+            dir.clone()
+        } else {
+            return Ok(());
+        };
         let legacy_path = app_data_dir.join("prompt_history.db");
         if !legacy_path.exists() {
             return Ok(());
@@ -400,13 +436,9 @@ impl PromptLibraryManager {
             params![id, title, content, now],
         )?;
         let prompt = self.get_prompt(id)?;
-        if let Err(e) = (PromptLibraryUpdatePayload::Added {
+        self.emit(PromptLibraryUpdatePayload::Added {
             prompt: prompt.clone(),
-        })
-        .emit(&self.app_handle)
-        {
-            error!("Failed to emit prompt library event: {}", e);
-        }
+        });
         Ok(prompt)
     }
 
@@ -755,13 +787,9 @@ impl PromptLibraryManager {
         }
         tx.commit()?;
         let prompt = self.get_prompt(id)?;
-        if let Err(e) = (PromptLibraryUpdatePayload::Updated {
+        self.emit(PromptLibraryUpdatePayload::Updated {
             prompt: prompt.clone(),
-        })
-        .emit(&self.app_handle)
-        {
-            error!("Failed to emit prompt library event: {}", e);
-        }
+        });
         Ok(prompt)
     }
 
@@ -771,9 +799,7 @@ impl PromptLibraryManager {
         if changed == 0 {
             return Err(anyhow!("prompt {} not found", id));
         }
-        if let Err(e) = (PromptLibraryUpdatePayload::Deleted { id }).emit(&self.app_handle) {
-            error!("Failed to emit prompt library event: {}", e);
-        }
+        self.emit(PromptLibraryUpdatePayload::Deleted { id });
         Ok(())
     }
 
@@ -797,14 +823,10 @@ impl PromptLibraryManager {
             params![new_val, now, id],
         )?;
         let prompt = self.get_prompt(id)?;
-        if let Err(e) = (PromptLibraryUpdatePayload::Pinned {
+        self.emit(PromptLibraryUpdatePayload::Pinned {
             id,
             pinned: new_val != 0,
-        })
-        .emit(&self.app_handle)
-        {
-            error!("Failed to emit prompt library event: {}", e);
-        }
+        });
         Ok(prompt)
     }
 
@@ -820,7 +842,7 @@ impl PromptLibraryManager {
         }
         // Emit updated
         if let Ok(prompt) = self.get_prompt(id) {
-            let _ = (PromptLibraryUpdatePayload::Updated { prompt }).emit(&self.app_handle);
+            self.emit(PromptLibraryUpdatePayload::Updated { prompt });
         }
         Ok(())
     }

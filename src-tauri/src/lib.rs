@@ -18,6 +18,7 @@ mod os_speech_win;
 mod overlay;
 mod paste_tx;
 pub mod portable;
+mod prompt_cli;
 mod secure_input;
 mod server;
 mod settings;
@@ -654,6 +655,58 @@ fn run_headless_transcription(app: &AppHandle, args: &CliArgs) -> i32 {
     0
 }
 
+fn run_headless_prompt_cli(command: Option<crate::cli::Commands>) -> i32 {
+    let Some(cmd) = command else { return 0 };
+    // Portable DB path; for non-portable, try to locate via dirs crate fallback
+    let db_path = if let Some(dir) = portable::data_dir() {
+        dir.join("prompt_library.db")
+    } else if let Some(proj_dirs) = directories_next_if_available() {
+        proj_dirs.join("prompt_library.db")
+    } else {
+        eprintln!("error: cannot resolve app data dir for prompt library (try portable mode or run the app once)");
+        return 1;
+    };
+    let mgr = match crate::managers::prompt_library::PromptLibraryManager::open_standalone(db_path) {
+        Ok(m) => m,
+        Err(e) => {
+            eprintln!("error: open prompt library: {}", e);
+            return 1;
+        }
+    };
+    match cmd {
+        crate::cli::Commands::Prompt { cmd } => crate::prompt_cli::run_prompt_cmd(&mgr, cmd),
+        crate::cli::Commands::Skill { cmd } => crate::prompt_cli::run_skill_cmd(&mgr, cmd),
+    }
+}
+
+fn directories_next_if_available() -> Option<std::path::PathBuf> {
+    // Best-effort without adding `directories` dep: use TAURI env / home
+    // On macOS: ~/Library/Application Support/com.pais.handy
+    // On Linux: ~/.local/share/com.pais.handy or $XDG_DATA_HOME
+    // On Windows: %APPDATA%\com.pais.handy
+    #[cfg(target_os = "macos")]
+    {
+        std::env::var("HOME").ok().map(|h| std::path::PathBuf::from(h).join("Library/Application Support/com.pais.handy"))
+    }
+    #[cfg(target_os = "windows")]
+    {
+        std::env::var("APPDATA").ok().map(|a| std::path::PathBuf::from(a).join("com.pais.handy"))
+    }
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(xdg) = std::env::var("XDG_DATA_HOME") {
+            if !xdg.is_empty() {
+                return Some(std::path::PathBuf::from(xdg).join("com.pais.handy"));
+            }
+        }
+        std::env::var("HOME").ok().map(|h| std::path::PathBuf::from(h).join(".local/share/com.pais.handy"))
+    }
+    #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
+    {
+        None
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run(cli_args: CliArgs) {
     // Pin glibc's dynamic mmap threshold before the first large allocation,
@@ -853,8 +906,9 @@ pub fn run(cli_args: CliArgs) {
 
     // The headless path must run as its own instance (see the single-instance
     // note below), not forward to an already-running app.
+    let is_prompt_cli = cli_args.command.is_some();
     let headless_mode =
-        cli_args.transcribe_file.is_some() || cli_args.list_devices || cli_args.list_models;
+        cli_args.transcribe_file.is_some() || cli_args.list_devices || cli_args.list_models || is_prompt_cli;
 
     #[allow(unused_mut)]
     let mut builder = tauri::Builder::default()
@@ -965,13 +1019,24 @@ pub fn run(cli_args: CliArgs) {
             specta_builder.mount_events(app);
 
             // Headless one-shot path (`--transcribe-file` / `--list-devices` /
-            // `--list-models`): initialize only what transcription needs — the
-            // store/paths plugins, the model + transcription managers, and the
-            // transcribe-cpp backend + accelerator settings — then run on a worker
-            // thread and exit. Deliberately skips the window, tray, overlay, audio
-            // recorder (so it never opens the mic, even with always_on_microphone),
-            // signal handlers, and autostart that initialize_core_logic sets up.
+            // `--list-models` / `prompt`|`skill` CLI): initialize only what the
+            // headless command needs, then run on a worker thread and exit.
+            // Deliberately skips the window, tray, overlay, audio recorder (so it
+            // never opens the mic, even with always_on_microphone), signal
+            // handlers, and autostart that initialize_core_logic sets up.
             if headless_mode {
+                // Prompt/Skill CLI is DB-only — no model needed, no AppHandle DB.
+                if let Some(_cmd) = cli_args.command.clone() {
+                    let args = cli_args.clone();
+                    std::thread::spawn(move || {
+                        let code = run_headless_guarded(|| run_headless_prompt_cli(args.command.clone()));
+                        use std::io::Write;
+                        let _ = std::io::stdout().flush();
+                        let _ = std::io::stderr().flush();
+                        std::process::exit(code);
+                    });
+                    return Ok(());
+                }
                 let app_handle = app.handle().clone();
                 let model_manager = Arc::new(
                     ModelManager::new(&app_handle).expect("Failed to initialize model manager"),

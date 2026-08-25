@@ -963,7 +963,8 @@
     "historyReuse": "Load",
     "newPrompt": "New",
     "variables": "Variables",
-    "spellCheck": "Spell check"
+    "spellCheck": "Spell check",
+    "sidebarHint": "Library & pasted prompts live in the sidebar. Use handy prompt search / handy skill use in your terminal."
   },
   "transcribe": {
     "dropTitle": "Drop an audio file to transcribe",

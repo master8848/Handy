@@ -13,7 +13,6 @@ import AccessibilityPermissions from "./components/AccessibilityPermissions";
 import SecureInputWarning from "./components/SecureInputWarning";
 import Footer from "./components/footer";
 import Onboarding, { AccessibilityOnboarding } from "./components/onboarding";
-import { Mic, Library, FileAudio } from "lucide-react";
 import {
   Sidebar,
   SidebarSection,
@@ -26,6 +25,9 @@ import { PromptWorkbench } from "./components/prompt-workbench/PromptWorkbench";
 import { TranscribeFiles } from "./components/transcribe/TranscribeFiles";
 import { WhatsNewGate } from "./components/whats-new";
 import { PromptPalette } from "./components/prompt-library/PromptPalette";
+import { PromptLibraryView } from "./components/prompt-library/PromptLibraryView";
+import { HistoryTimeline } from "./components/history/HistoryTimeline";
+import { MainSidebar, type MainNavId } from "./components/layout/MainSidebar";
 import { Home } from "./components/settings";
 import { ScreenshotsPage } from "./components/screenshots/ScreenshotsPage";
 import { useSettings } from "./hooks/useSettings";
@@ -86,6 +88,24 @@ function App() {
     return "dictate";
   };
   const [activeTab, setActiveTab] = useState<MainTab>(() => getInitialTab());
+  const getInitialMainNav = (): MainNavId => {
+    const params = new URLSearchParams(window.location.search);
+    const nav = params.get("nav") as MainNavId | null;
+    if (nav && ["dictate", "prompt", "library", "history", "transcribe", "settings"].includes(nav)) return nav;
+    try {
+      const stored = localStorage.getItem("handy.mainNav") as MainNavId | null;
+      if (stored && ["dictate", "prompt", "library", "history", "transcribe", "settings"].includes(stored)) return stored;
+    } catch {}
+    // migrate from activeTab
+    if (activeTab === "dictate") return "dictate";
+    if (activeTab === "prompt") return "prompt";
+    if (activeTab === "transcribe") return "transcribe";
+    return "dictate";
+  };
+  const [mainNav, setMainNav] = useState<MainNavId>(() => getInitialMainNav());
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try { return localStorage.getItem("handy.sidebarCollapsed") === "1"; } catch { return false; }
+  });
   const { settings, updateSetting } = useSettings();
 
   useEffect(() => {
@@ -102,6 +122,21 @@ function App() {
       // ignore
     }
   }, [activeTab]);
+  useEffect(() => {
+    try { localStorage.setItem("handy.mainNav", mainNav); } catch {}
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("nav", mainNav);
+      window.history.replaceState(null, "", url.toString());
+    } catch {}
+    // keep activeTab in sync so TopTabBar highlight stays sane on legacy ?tab links
+    if (mainNav === "dictate") setActiveTab("dictate");
+    else if (mainNav === "prompt") setActiveTab("prompt");
+    else if (mainNav === "transcribe") setActiveTab("transcribe");
+  }, [mainNav]);
+  useEffect(() => {
+    try { localStorage.setItem("handy.sidebarCollapsed", sidebarCollapsed ? "1" : "0"); } catch {}
+  }, [sidebarCollapsed]);
   const direction = getLanguageDirection(i18n.language);
   const refreshAudioDevices = useSettingsStore(
     (state) => state.refreshAudioDevices,
@@ -264,21 +299,21 @@ function App() {
   // of opening a separate OS window. The studio window is kept for backward
   // compatibility but all new flows should use the in-window persona.
   const handleMainWindowNavigate = (section: SidebarSection) => {
-    if (section === "prompt-library" || section === "prompt-history") {
-      setActiveTab("prompt");
-      return;
-    }
-    if (section === "transcribe") {
-      setActiveTab("transcribe");
-      return;
-    }
-    if (section === "home") {
-      setActiveTab("dictate");
-      return;
-    }
+    if (section === "prompt-library") { setMainNav("library"); return; }
+    if (section === "prompt-history") { setMainNav("history"); return; }
+    if (section === "transcribe") { setMainNav("transcribe"); return; }
+    if (section === "home") { setMainNav("dictate"); return; }
     commands.openAppWindow("settings").catch((e) => {
       console.warn("Failed to open settings window:", e);
     });
+  };
+
+  const handleMainNavChange = (nav: MainNavId) => {
+    if (nav === "settings") {
+      commands.openAppWindow("settings").catch((e) => console.warn("Failed to open settings window:", e));
+      return;
+    }
+    setMainNav(nav);
   };
 
   const openSettingsWindow = () => handleMainWindowNavigate("general");
@@ -419,62 +454,30 @@ function App() {
   } else if (onboardingStep === "model") {
     content = <Onboarding onModelSelected={handleModelSelected} />;
   } else if (isMainWindow) {
-    const stripActive = "w-8 h-8 grid place-items-center rounded-lg bg-logo-primary/15 text-logo-primary";
-    const stripIdle = "w-8 h-8 grid place-items-center rounded-lg hover:bg-mid-gray/10 text-text/30 hover:text-text/60";
     content = (
-      <div
-        dir={direction}
-        className="h-screen flex flex-col select-none cursor-default"
-      >
+      <div dir={direction} className="h-screen flex flex-col select-none cursor-default">
         <WhatsNewGate />
-        <TopTabBar
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          onOpenSettings={openSettingsWindow}
-        />
+        <TopTabBar activeTab={activeTab} onTabChange={setActiveTab} onOpenSettings={openSettingsWindow} />
         <div className="flex-1 flex min-h-0 overflow-hidden">
-          <div className="hidden sm:flex w-[48px] shrink-0 border-e border-mid-gray/10 flex-col items-center py-3 gap-1">
-            {activeTab === "dictate" && (
-              <>
-                <button type="button" className={stripActive} aria-label={t("tabs.dictate")}>
-                  <Mic className="w-4 h-4" />
-                </button>
-                <button type="button" className={stripIdle} aria-hidden>
-                  <Library className="w-4 h-4 opacity-60" />
-                </button>
-              </>
-            )}
-            {activeTab === "prompt" && (
-              <>
-                <button type="button" className={stripActive} aria-label={t("tabs.prompt")}>
-                  <Library className="w-4 h-4" />
-                </button>
-                <button type="button" className={stripIdle} aria-hidden>
-                  <Mic className="w-4 h-4 opacity-60" />
-                </button>
-              </>
-            )}
-            {activeTab === "transcribe" && (
-              <>
-                <button type="button" className={stripActive} aria-label={t("tabs.transcribe")}>
-                  <FileAudio className="w-4 h-4" />
-                </button>
-                <button type="button" className={stripIdle} aria-hidden>
-                  <Mic className="w-4 h-4 opacity-60" />
-                </button>
-              </>
-            )}
-            <div className="flex-1" />
-          </div>
+          <MainSidebar
+            active={mainNav}
+            onChange={handleMainNavChange}
+            collapsed={sidebarCollapsed}
+            onToggleCollapsed={() => setSidebarCollapsed((v) => !v)}
+          />
           <div className="flex-1 overflow-y-auto">
             <div className="flex flex-col items-center p-4 gap-4">
               <AccessibilityPermissions />
               <SecureInputWarning />
-              {activeTab === "dictate" && (
-                <Home showTitle={false} onNavigate={handleMainWindowNavigate} />
+              {mainNav === "dictate" && <Home showTitle={false} onNavigate={handleMainWindowNavigate} />}
+              {mainNav === "prompt" && <PromptWorkbench />}
+              {mainNav === "library" && (
+                <PromptLibraryView />
               )}
-              {activeTab === "prompt" && <PromptWorkbench />}
-              {activeTab === "transcribe" && <TranscribeFiles />}
+              {mainNav === "history" && (
+                <HistoryTimeline onNavigate={handleMainWindowNavigate} />
+              )}
+              {mainNav === "transcribe" && <TranscribeFiles />}
             </div>
           </div>
         </div>
