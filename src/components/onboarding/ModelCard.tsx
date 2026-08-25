@@ -9,6 +9,7 @@ import {
   Languages,
   Loader2,
   Trash2,
+  X,
 } from "lucide-react";
 import type { ModelInfo } from "@/bindings";
 import { formatModelSize } from "../../lib/utils/format";
@@ -60,6 +61,7 @@ export type ModelCardStatus =
   | "extracting"
   | "switching"
   | "active"
+  | "loaded"
   | "available";
 
 interface ModelCardProps {
@@ -71,6 +73,7 @@ interface ModelCardProps {
   onSelect: (modelId: string) => void;
   onDownload?: (modelId: string) => void;
   onDelete?: (modelId: string) => void;
+  onUnload?: (modelId: string) => void;
   onCancel?: (modelId: string) => void;
   downloadProgress?: number;
   downloadSpeed?: number; // MB/s
@@ -86,6 +89,7 @@ const ModelCard: React.FC<ModelCardProps> = ({
   onSelect,
   onDownload,
   onDelete,
+  onUnload,
   onCancel,
   downloadProgress,
   downloadSpeed,
@@ -96,15 +100,22 @@ const ModelCard: React.FC<ModelCardProps> = ({
     (state) => state.settings?.debug_mode ?? false,
   );
   const isFeatured = variant === "featured";
+  const isOsSpeech =
+    model.engine_type === "OsSpeech" || model.id === "os-speech";
   // The active model is already loaded — re-selecting it just reloads it for no
-  // gain, so it is deliberately not clickable.
-  const isClickable = status === "available" || status === "downloadable";
+  // gain, so it is deliberately not clickable. A "loaded" (in-memory, not
+  // active) model switches instantly, so it stays clickable.
+  const isClickable =
+    status === "available" || status === "downloadable" || status === "loaded";
 
   // Get translated model name and description
   const displayName = getTranslatedModelName(model, t);
   const displayDescription = getTranslatedModelDescription(model, t);
   const showModelSize =
-    status === "downloadable" || status === "available" || status === "active";
+    !isOsSpeech &&
+    (status === "downloadable" ||
+      status === "available" ||
+      status === "active");
   const formattedModelSize = formatModelSize(Number(model.size_mb));
   const quantLabel = getQuantLabel(model.filename);
   const capabilityLanguages = getUniqueCapabilityLanguages(
@@ -117,6 +128,9 @@ const ModelCard: React.FC<ModelCardProps> = ({
   const getVariantClasses = () => {
     if (status === "active") {
       return "border-2 border-logo-primary/50 bg-logo-primary/10";
+    }
+    if (status === "loaded") {
+      return "border-2 border-logo-primary/30 bg-logo-primary/5";
     }
     if (isFeatured) {
       return "border-2 border-logo-primary/25 bg-logo-primary/5";
@@ -142,6 +156,11 @@ const ModelCard: React.FC<ModelCardProps> = ({
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
     onDelete?.(model.id);
+  };
+
+  const handleUnload = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onUnload?.(model.id);
   };
 
   return (
@@ -179,10 +198,17 @@ const ModelCard: React.FC<ModelCardProps> = ({
                 {t("modelSelector.active")}
               </Badge>
             )}
-            {model.is_custom && (
-              <Badge variant="secondary">{t("modelSelector.custom")}</Badge>
+            {status === "loaded" && (
+              <Badge variant="secondary">{t("modelSelector.loaded")}</Badge>
             )}
-            {isLegacySource(model) && (
+            {isOsSpeech ? (
+              <Badge variant="secondary">{t("modelSelector.builtIn")}</Badge>
+            ) : (
+              model.is_custom && (
+                <Badge variant="secondary">{t("modelSelector.custom")}</Badge>
+              )
+            )}
+            {!isOsSpeech && isLegacySource(model) && (
               <Badge variant="secondary">{t("modelSelector.legacy")}</Badge>
             )}
             {status === "switching" && (
@@ -274,16 +300,35 @@ const ModelCard: React.FC<ModelCardProps> = ({
             )}
           </span>
         )}
-        {onDelete && (status === "available" || status === "active") && (
+        {onDelete &&
+          !isOsSpeech &&
+          (status === "available" || status === "active") && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleDelete}
+              title={t("modelSelector.deleteModel", { modelName: displayName })}
+              className="flex items-center gap-1.5 text-logo-primary/85 hover:text-logo-primary hover:bg-logo-primary/10"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>{t("common.delete")}</span>
+            </Button>
+          )}
+        {status === "loaded" && (
+          <span className="flex items-center gap-1 ms-auto text-xs text-text/50">
+            {t("settings.models.loadedHint")}
+          </span>
+        )}
+        {status === "loaded" && onUnload && (
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleDelete}
-            title={t("modelSelector.deleteModel", { modelName: displayName })}
-            className="flex items-center gap-1.5 text-logo-primary/85 hover:text-logo-primary hover:bg-logo-primary/10"
+            onClick={handleUnload}
+            title={t("modelSelector.unloadTooltip")}
+            className="flex items-center gap-1.5 text-text/60 hover:text-text hover:bg-logo-primary/10"
           >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span>{t("common.delete")}</span>
+            <X className="w-3.5 h-3.5" />
+            <span>{t("modelSelector.unload")}</span>
           </Button>
         )}
       </div>

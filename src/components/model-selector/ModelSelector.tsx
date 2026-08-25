@@ -4,6 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import { commands } from "@/bindings";
 import { getTranslatedModelName } from "../../lib/utils/modelTranslation";
 import { useModelStore } from "../../stores/modelStore";
+import { useSettings } from "../../hooks/useSettings";
 import ModelStatusButton from "./ModelStatusButton";
 import ModelDropdown from "./ModelDropdown";
 import DownloadProgressDisplay from "./DownloadProgressDisplay";
@@ -26,14 +27,17 @@ interface ModelSelectorProps {
 
 const ModelSelector: React.FC<ModelSelectorProps> = ({ onError }) => {
   const { t } = useTranslation();
+  const { settings } = useSettings();
   const {
     models,
     currentModel,
+    loadedModels,
     downloadProgress,
     downloadStats,
     verifyingModels,
     extractingModels,
     selectModel,
+    unloadModel,
   } = useModelStore();
 
   const [modelStatus, setModelStatus] = useState<ModelStatus>("unloaded");
@@ -202,10 +206,19 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onError }) => {
 
     const currentModelInfo = models.find((m) => m.id === displayModelId);
 
+    // With multi-model loading enabled, other models can be resident in memory
+    // next to the active one — surface that count subtly next to the name.
+    const loadedSuffix =
+      loadedModels.length > 1
+        ? ` · ${t("modelSelector.loadedCount", {
+            count: loadedModels.length,
+          })}`
+        : "";
+
     switch (modelStatus) {
       case "ready":
         return currentModelInfo
-          ? getTranslatedModelName(currentModelInfo, t)
+          ? getTranslatedModelName(currentModelInfo, t) + loadedSuffix
           : t("modelSelector.modelReady");
       case "loading":
         return currentModelInfo
@@ -223,13 +236,13 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onError }) => {
         return modelError || t("modelSelector.modelError");
       case "unloaded":
         return currentModelInfo
-          ? getTranslatedModelName(currentModelInfo, t)
+          ? getTranslatedModelName(currentModelInfo, t) + loadedSuffix
           : t("modelSelector.modelUnloaded");
       case "none":
         return t("modelSelector.noModelDownloadRequired");
       default:
         return currentModelInfo
-          ? getTranslatedModelName(currentModelInfo, t)
+          ? getTranslatedModelName(currentModelInfo, t) + loadedSuffix
           : t("modelSelector.modelUnloaded");
     }
   };
@@ -253,12 +266,40 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onError }) => {
           onClick={() => setShowModelDropdown(!showModelDropdown)}
         />
 
+        {/* Loaded model chips when multi-model loading is enabled */}
+        {settings?.multi_model_loading && loadedModels.length > 1 && (
+          <div className="flex items-center gap-1 ms-2">
+            {loadedModels.map((loadedId) => {
+              const model = models.find((m) => m.id === loadedId);
+              if (!model) return null;
+              const isActive = loadedId === displayModelId;
+              return (
+                <button
+                  key={model.id}
+                  type="button"
+                  title={t("modelSelector.loadedModels")}
+                  onClick={() => handleModelSelect(model.id)}
+                  className={`text-xs px-2 py-1 rounded-md border transition-colors ${
+                    isActive
+                      ? "border-logo-primary/50 bg-logo-primary/10 text-logo-primary"
+                      : "border-mid-gray/20 text-text/60 hover:bg-mid-gray/10"
+                  }`}
+                >
+                  {getTranslatedModelName(model, t)}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {/* Model Dropdown */}
         {showModelDropdown && (
           <ModelDropdown
             models={models}
             currentModelId={displayModelId}
+            loadedModels={loadedModels}
             onModelSelect={handleModelSelect}
+            onUnload={unloadModel}
           />
         )}
       </div>

@@ -1,0 +1,208 @@
+# source: https://docs.aws.amazon.com/glossary/latest/reference/glos-chap.html https://kubernetes.io/docs/reference/glossary/ https://docs.ansible.com/ansible/latest/reference_appendices/glossary.html
+
+access key
+ACM
+admission controller
+affinity
+AMI
+Ansible
+anti-affinity
+API Gateway
+API server
+ARN
+Athena
+Aurora
+auto scaling
+availability zone
+bucket
+CDN
+check mode
+CIDR
+cloud native
+CloudFormation
+CloudFront
+CloudTrail
+CloudWatch
+CNCF
+CNI
+CodeBuild
+CodeCommit
+CodeDeploy
+CodePipeline
+Cognito
+config map
+configuration management
+consolidated billing
+container orchestration
+container registry
+container runtime
+containerd
+containerization
+continuous delivery
+continuous integration
+control node
+control plane
+CRI-O
+cron job
+cross-account
+cross-region replication
+CSI
+daemon set
+data plane
+Datadog
+deployment pipeline
+Direct Connect
+disaster recovery
+DNS
+Docker
+dry run
+DynamoDB
+EBS
+EC2
+ECR
+ECS
+edge computing
+edge location
+EFS
+EKS
+Elastic Beanstalk
+elastic IP
+ElastiCache
+ELB
+EMR
+endpoint
+ephemeral container
+etcd
+EventBridge
+eviction
+exponential backoff
+Fargate
+feature flag
+federation
+finalizer
+Firehose
+Glacier
+Glue
+Grafana
+HDFS
+health check
+helm chart
+high availability
+horizontal pod autoscaler
+hosted zone
+HPA
+hybrid cloud
+IaaS
+IAM
+IAM role
+IAM user
+idempotency
+identity provider
+infrastructure as code
+ingress
+init container
+internet gateway
+inventory
+Istio
+Jinja2
+Kinesis
+KMS
+kube-apiserver
+kube-proxy
+kube-scheduler
+kubeadm
+kubectl
+kubelet
+Kubernetes
+Lambda
+Lightsail
+liveness probe
+load balancer
+logging
+managed node
+managed policy
+manifest
+MFA
+minikube
+multi-AZ
+multi-factor authentication
+NAT
+NAT gateway
+Neptune
+network ACL
+network policy
+observability
+on-demand instance
+OpenSearch
+operator pattern
+orchestration
+organizational unit
+PaaS
+pagination
+persistent volume
+persistent volume claim
+playbook
+pod
+policy
+preemption
+principal
+private subnet
+probe
+Prometheus
+public subnet
+pull mode
+push mode
+RBAC
+read replica
+readiness probe
+Redshift
+replica set
+reserved instance
+role-based access control
+rolling update
+Route 53
+route table
+S3
+SaaS
+secret
+secret access key
+Secrets Manager
+security group
+selector
+self-healing
+serverless
+service account
+service control policy
+service mesh
+SES
+single sign-on
+snapshot
+Snowball
+SNS
+spot instance
+SQS
+SSH
+SSH key
+startup probe
+stateful set
+Step Functions
+storage class
+STS
+subnet
+Systems Manager
+taint
+telemetry
+Terraform
+throttling
+toleration
+trust policy
+virtual machine
+virtualization
+volume
+VPC
+VPC endpoint
+VPN
+WAF
+workload
+X-Ray
+YAML

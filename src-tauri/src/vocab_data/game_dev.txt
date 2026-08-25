@@ -1,0 +1,209 @@
+# source: https://docs.unity3d.com/Manual/Glossary.html | https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-terminology | https://docs.godotengine.org/en/stable/getting_started/introduction/key_concepts_overview.html
+
+60 FPS
+Actor
+AI Controller
+ambient light
+ambient occlusion
+anchor
+animation blending
+animation clip
+animation curves
+animation events
+animation state machine
+animator controller
+anisotropic filtering
+antialiasing
+aspect ratio
+asset
+asset pipeline
+asset store
+audio clip
+audio listener
+audio mixer
+avatar
+baked lighting
+baking
+batching
+battle royale
+blend tree
+bloom
+Blueprint
+Blueprint class
+body type
+bone
+boss fight
+box collider
+Brush
+Camera2D
+canvas
+capsule collider
+Casting
+Character
+character controller
+character joint
+checkpoint
+Class
+collider
+collider 2D
+collision
+collision detection
+CollisionShape2D
+Component
+composite collider
+compute shader
+configurable joint
+cutscene
+depth buffer
+difficulty curve
+dimetric projection
+draw call
+emissive
+first person shooter
+fixed joint
+fixed joint 2D
+fog
+FPS
+frame pacing
+frame rate
+frustum
+frustum culling
+game design
+game feel
+game loop
+Game Mode
+game object
+Game State
+GameObject
+GDScript
+geometry shader
+global illumination
+Godot
+Godot Engine
+gravity
+HDR
+hinge joint
+hitbox
+humanoid
+input system
+instancing
+interpolation
+inverse kinematics
+isometric projection
+itch io
+kinematic
+kinematics
+latency
+Level
+level design
+level of detail
+level streaming
+light probe
+lighting
+lightmap
+line renderer
+LOD
+material
+mesh
+mesh collider
+metallic
+MIP
+MIP mapping
+MMORPG
+MOBA
+navigation
+navigation agent
+NavMesh
+netcode
+node
+Node3D
+non player character
+normal map
+normal mapping
+NPC
+Object
+occlusion culling
+open world
+packed texture
+parallax mapping
+particle system
+Pawn
+PBR
+physically based rendering
+physics engine
+physics material
+physics material 2D
+platformer
+player character
+Player Controller
+player start
+Player State
+Playstation
+polygon
+post processing
+prefab
+procedural generation
+procedurally generated
+Project
+quick time event
+ragdoll
+rasterization
+raycast
+raycasting
+real time strategy
+reflection probe
+rendering
+respawn
+retargeting
+rigging
+rigid body
+rigidbody
+roguelike
+role playing game
+roughness
+RPG
+sandbox game
+save point
+scene
+scene graph
+scene tree
+shader
+shadow map
+signal
+skeletal animation
+skinned mesh
+skybox
+spawn point
+specular
+sphere collider
+sprite
+sprite atlas
+sprite renderer
+sprite sheet
+Sprite2D
+Steam
+Steam Deck
+surface shader
+terrain
+texture
+texture atlas
+tick rate
+tilemap
+tileset
+tonemapping
+trail renderer
+trigger
+Unity
+Unreal Engine
+user interface
+velocity
+vertex
+vertex color
+vertex shader
+viewport
+Volume
+volumetric lighting
+wind zone
+World
+Xbox
+z-buffer

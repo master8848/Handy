@@ -2,6 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { Dropdown } from "../ui/Dropdown";
 import { SettingContainer } from "../ui/SettingContainer";
+import { ToggleSwitch } from "../ui/ToggleSwitch";
 import { useSettings } from "../../hooks/useSettings";
 import type { OverlayPosition, OverlayStyle } from "@/bindings";
 
@@ -82,6 +83,20 @@ export const ShowOverlay: React.FC<ShowOverlayProps> = React.memo(
               disabled={isUpdating("overlay_position")}
             />
           </SettingContainer>
+        )}
+        {selectedStyle !== "none" && (
+          <ToggleSwitch
+            checked={(getSetting("overlay_native_enabled") as boolean) ?? true}
+            onChange={(v: boolean) => updateSetting("overlay_native_enabled", v)}
+            isUpdating={isUpdating("overlay_native_enabled")}
+            label={t("settings.advanced.overlay.native.title", "Native overlay")}
+            description={t(
+              "settings.advanced.overlay.native.description",
+              "Use NSPanel (macOS) / HWND (Windows) instead of WebView. Saves 30–80 MB. Requires restart. Linux keeps WebView.",
+            )}
+            descriptionMode={descriptionMode}
+            grouped={grouped}
+          />
         )}
       </>
     );

@@ -2,7 +2,8 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { ShowOverlay } from "../ShowOverlay";
 import { ModelUnloadTimeoutSetting } from "../ModelUnloadTimeout";
-import { CustomWords } from "../CustomWords";
+import { CustomWordDatasets } from "./CustomWordDatasets";
+import { TextReplacements } from "./TextReplacements";
 import { SettingsGroup } from "../../ui/SettingsGroup";
 import { StartHidden } from "../StartHidden";
 import { AutostartToggle } from "../AutostartToggle";
@@ -21,7 +22,18 @@ import { KeyboardImplementationSelector } from "../debug/KeyboardImplementationS
 import { VoiceActivityDetection } from "../VoiceActivityDetection";
 import { AccelerationSelector } from "../AccelerationSelector";
 import { LazyStreamClose } from "../LazyStreamClose";
+import { ServerSettings } from "../ServerSettings";
+import { BrowserPreviewToggle } from "../BrowserPreviewToggle";
+import { ApiSettings } from "../ApiSettings";
 
+/**
+ * Choice: reuse `server_mode_enabled` as the browser preview flag (no new field).
+ * UI is gated behind `experimental_enabled`: toolbar dropdown and the
+ * "Show in Browser (experimental)" toggle are hidden unless experimental is on.
+ * ServerSettings remains functional; when experimental is on it shows a toolbar
+ * note and can also be toggled from the toolbar without restart via the
+ * browser-server commands.
+ */
 export const AdvancedSettings: React.FC = () => {
   const { t } = useTranslation();
   const { getSetting } = useSettings();
@@ -36,6 +48,8 @@ export const AdvancedSettings: React.FC = () => {
         <ShowOverlay descriptionMode="tooltip" grouped={true} />
         <ModelUnloadTimeoutSetting descriptionMode="tooltip" grouped={true} />
         <ExperimentalToggle descriptionMode="tooltip" grouped={true} />
+        <ServerSettings grouped={true} />
+        <ApiSettings grouped={true} />
       </SettingsGroup>
 
       <SettingsGroup title={t("settings.advanced.groups.output")}>
@@ -47,7 +61,8 @@ export const AdvancedSettings: React.FC = () => {
 
       <SettingsGroup title={t("settings.advanced.groups.transcription")}>
         <VoiceActivityDetection descriptionMode="tooltip" grouped={true} />
-        <CustomWords descriptionMode="tooltip" grouped />
+        <CustomWordDatasets descriptionMode="tooltip" grouped />
+        <TextReplacements grouped />
         <AppendTrailingSpace descriptionMode="tooltip" grouped={true} />
       </SettingsGroup>
 
@@ -61,6 +76,7 @@ export const AdvancedSettings: React.FC = () => {
 
       {experimentalEnabled && (
         <SettingsGroup title={t("settings.advanced.groups.experimental")}>
+          <BrowserPreviewToggle descriptionMode="tooltip" grouped={true} />
           <PostProcessingToggle descriptionMode="tooltip" grouped={true} />
           <KeyboardImplementationSelector
             descriptionMode="tooltip"

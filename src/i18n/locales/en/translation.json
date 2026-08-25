@@ -7,16 +7,75 @@
     "model": "Model",
     "quit": "Quit",
     "cancel": "Cancel",
-    "secureInputWarning": "⚠ Shortcuts blocked by Secure Input"
+    "secureInputWarning": "⚠ Shortcuts blocked by Secure Input",
+    "openInBrowser": "Open in Browser",
+    "openSettingsWindow": "Open Settings Window"
   },
   "sidebar": {
+    "home": "Home",
+    "promptHistory": "Pasted prompts",
+    "promptLibrary": "Prompt Library",
     "general": "General",
+    "appearance": "Appearance",
     "models": "Models",
     "advanced": "Advanced",
     "postProcessing": "Post Process",
     "history": "History",
     "debug": "Debug",
-    "about": "About"
+    "about": "About",
+    "transcribe": "Transcribe"
+  },
+  "tabs": {
+    "dictate": "Dictate",
+    "prompt": "Prompt Studio",
+    "transcribe": "Transcribe"
+  },
+  "promptLibrary": {
+    "title": "Prompt Library",
+    "description": "Manage, organize and insert your prompts.",
+    "searchPlaceholder": "Search prompts...",
+    "allFolders": "All folders",
+    "allTags": "All tags",
+    "folders": "Folders",
+    "sortUpdated": "Updated",
+    "sortCreated": "Created",
+    "sortUsage": "Most used",
+    "sortTitle": "Title",
+    "empty": "No prompts yet. Create your first prompt.",
+    "noResults": "No prompts match your search.",
+    "newPrompt": "New Prompt",
+    "editPrompt": "Edit Prompt",
+    "titlePlaceholder": "Prompt title",
+    "contentPlaceholder": "Prompt content with {{variables}}",
+    "tagsPlaceholder": "Tags separated by commas",
+    "folder": "Folder",
+    "noFolder": "No folder",
+    "fieldTitle": "Title",
+    "fieldContent": "Content",
+    "fieldTags": "Tags",
+    "saved": "Prompt saved",
+    "insert": "Insert",
+    "inserted": "Prompt inserted",
+    "pin": "Pin",
+    "duplicate": "Duplicate",
+    "usageCount": "{{count}} uses",
+    "deleteConfirmTitle": "Delete prompt",
+    "deleteConfirm": "Delete \"{{title}}\"?",
+    "fillVariables": "Fill variables",
+    "manageFolders": "Manage folders",
+    "folderNamePlaceholder": "Folder name",
+    "add": "Add",
+    "export": "Export",
+    "import": "Import",
+    "exported": "Exported to clipboard",
+    "imported": "Imported {{count}} prompts",
+    "importFailed": "Import failed",
+    "paletteTitle": "Prompt Palette",
+    "palettePlaceholder": "Search prompts...",
+    "versionHistory": "Version History",
+    "noVersions": "No versions",
+    "restore": "Restore",
+    "restored": "Version restored"
   },
   "onboarding": {
     "subtitle": "To get started, choose a transcription model",
@@ -113,6 +172,10 @@
       "grant": "Grant Permission",
       "granted": "Granted",
       "waiting": "Waiting...",
+      "checkAgain": "Check again",
+      "restartHint": "If you've already enabled Handy in System Settings and it still shows as waiting, macOS may require a restart to recognize the change.",
+      "restart": "Restart Handy",
+      "continueAnyway": "Continue anyway",
       "allGranted": "All set!",
       "errors": {
         "checkFailed": "Failed to check permissions. Please try again.",
@@ -144,6 +207,11 @@
     "downloadSpeed": "{{speed}} MB/s",
     "cancel": "Cancel",
     "cancelDownload": "Cancel download",
+    "loaded": "Loaded",
+    "loadedCount": "{{count}} loaded",
+    "unload": "Unload",
+    "unloadTooltip": "Unload model from memory",
+    "builtIn": "Built-in",
     "capabilities": {
       "languageSelection": "Supports multiple input languages",
       "singleLanguage": "Supports this language only",
@@ -152,7 +220,8 @@
       "translation": "Can translate to English",
       "translate": "Translate",
       "streaming": "Shows live transcription as you speak"
-    }
+    },
+    "loadedModels": "Loaded models"
   },
   "settings": {
     "modelSettings": {
@@ -215,7 +284,20 @@
         "label": "Rescan",
         "tooltip": "Rescan for models added to the models folder or Hugging Face cache outside Handy"
       },
-      "noModelsMatch": "No models match this filter."
+      "noModelsMatch": "No models match this filter.",
+      "loadedHint": "Click to switch instantly",
+      "multiModel": {
+        "title": "Load multiple models at once",
+        "description": "Keep several models in memory so you can switch instantly and compare transcriptions. Uses more RAM."
+      },
+      "osSpeech": {
+        "authRequired": "Permission needed to use device speech recognition. Open System Settings → Privacy & Security → Speech Recognition and enable Handy.",
+        "openSystemSettings": "Open System Settings",
+        "grantPermission": "Grant Permission",
+        "retry": "Retry",
+        "learnMoreSpeech": "Speech Recognition guide",
+        "learnMoreMic": "Microphone guide"
+      }
     },
     "sound": {
       "title": "Sound",
@@ -298,6 +380,10 @@
             "bottom": "Bottom",
             "top": "Top"
           }
+        },
+        "native": {
+          "title": "Native Overlay",
+          "description": "Use NSPanel (macOS) / HWND (Windows) instead of WebView. Saves 30–80 MB. Requires restart. Linux keeps WebView."
         }
       },
       "pasteMethod": {
@@ -365,9 +451,116 @@
         "remove": "Remove {{word}}",
         "duplicate": "\"{{word}}\" already exists"
       },
+      "customWordDatasets": {
+        "title": "Word Datasets",
+        "description": "Term lists that improve recognition of names and specialized terms. Toggle a dataset on to feed its terms to the model; every transcription is also fuzzy-corrected against enabled terms.",
+        "activeWords_one": "{{count}} word active",
+        "activeWords_other": "{{count}} words active",
+        "builtinBadge": "Built-in",
+        "words_one": "{{count}} word",
+        "words_other": "{{count}} words",
+        "expanded": "Show words",
+        "collapsed": "Hide words",
+        "toggle": "Toggle dataset",
+        "readOnlyHint": "Built-in datasets are read-only. Toggle them on or off.",
+        "addWordPlaceholder": "Add a term",
+        "add": "Add",
+        "removeWord": "Remove {{word}}",
+        "duplicateWord": "\"{{word}}\" already exists in this dataset",
+        "newDatasetPlaceholder": "Dataset name",
+        "create": "Create",
+        "deleteDataset": "Delete dataset",
+        "deleteConfirm": "Delete \"{{name}}\"? This cannot be undone.",
+        "rename": "Rename",
+        "importButton": "Import .txt",
+        "importSuccess": "Imported \"{{name}}\" with {{count}} words",
+        "importFailed": "Import failed: {{error}}",
+        "export": "Export",
+        "exportSuccess": "Exported \"{{name}}\"",
+        "exportFailed": "Export failed: {{error}}",
+        "emptyList": "No datasets yet. Create your own or import a .txt file with one term per line."
+      },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",
         "description": "Filter silence from recordings. Streaming-capable models use a longer VAD tail; disabling VAD records raw audio."
+      },
+      "textReplacements": {
+        "label": "Text Replacements",
+        "description": "Fix predictable mishearings: whenever the model outputs the \"Find\" text, it is replaced with the \"Replace\" text before pasting. Runs in order, after post-processing.",
+        "add": "Add",
+        "save": "Save",
+        "remove": "Remove",
+        "enabled": "Enabled",
+        "findPlaceholder": "Find (e.g. cloud code)",
+        "replacePlaceholder": "Replace (e.g. Claude Code)",
+        "empty": "No replacements yet. Add one to fix a word or name the model consistently mishears.",
+        "emptyFind": "Enter the text to find first."
+      },
+      "serverMode": {
+        "title": "Server Mode (Browser)",
+        "description": "Run without the main WebView and manage Handy from your browser at http://127.0.0.1:{{port}}. Saves 150–300 MB.",
+        "toggleLabel": "Enable Server Mode",
+        "toggleDescription": "Skip the main window; use the browser instead. The tray and global shortcuts keep working.",
+        "portLabel": "Port",
+        "portDescription": "Loopback port (127.0.0.1 only). Tries next ports up to +10 if busy. Requires restart.",
+        "tokenLabel": "Auth Token",
+        "tokenDescription": "Bearer token for API requests. Public paths (/ and /assets/*) require no token.",
+        "copyToken": "Copy Token",
+        "copied": "Copied",
+        "regenerate": "Regenerate",
+        "requiresRestart": "Requires restart to take effect.",
+        "restartHint": "Quit and reopen Handy after toggling server mode or changing the port.",
+        "toolbarNote": "Tip: when Experimental is on, you can start/stop the server instantly from the toolbar menu (no restart needed)."
+      },
+      "browserPreview": {
+        "label": "Show in Browser (experimental)",
+        "description": "Expose Handy in your browser at http://127.0.0.1:{{port}} without restarting. Restart still required for full server mode.",
+        "running": "Running",
+        "stopped": "Stopped"
+      },
+      "toolbar": {
+        "preferences": "Preferences",
+        "showInBrowser": "Show in Browser",
+        "startServer": "Start Server",
+        "stopServer": "Stop Server",
+        "openInBrowser": "Open in Browser",
+        "serverRunning": "Server running",
+        "serverStopped": "Server stopped",
+        "serverStarted": "Server started at {{url}}",
+        "serverStoppedToast": "Server stopped",
+        "serverError": "Server error: {{error}}"
+      },
+      "api": {
+        "title": "Transcription API",
+        "description": "Expose a local HTTP API for speech-to-text. Any app on this machine can transcribe audio without re-implementing a model. Auth is required; only loopback (127.0.0.1) is allowed.",
+        "policy": {
+          "title": "Model Load Policy",
+          "description": "Who may cause a model to load or unload via the API.",
+          "options": {
+            "auto_allow": "Auto-allow — API may load/unload models on demand",
+            "always_ask": "Always ask — API load requires manual preload (returns 403)",
+            "never": "Never — API cannot trigger any load (preload in UI)"
+          }
+        },
+        "lazy": {
+          "title": "Lazy Transcribe",
+          "description": "When on, POST /api/transcribe and /v1/audio/* auto-load the selected (or requested) model if nothing is loaded. Disable to require an explicit POST /api/model/load first."
+        },
+        "baseUrl": "Base URL",
+        "tokenHint": "Use as Bearer token. Example: Authorization: Bearer <token>",
+        "openDocs": "Open API docs (OpenAPI JSON)",
+        "copyCurl": "Copy as cURL",
+        "copyJs": "Copy JS (openai SDK)",
+        "copyPython": "Copy Python",
+        "copied": "Copied",
+        "examples": {
+          "native": "Optimized Handy endpoint (JSON): POST /api/transcribe",
+          "openai": "OpenAI-compatible: POST /v1/audio/transcriptions",
+          "listModels": "List models: GET /v1/models or /api/models",
+          "modelStatus": "Model status: GET /api/model/status",
+          "loadModel": "Load model: POST /api/model/load"
+        },
+        "osSpeechHelp": "The model id \"os-speech\" uses the OS built-in recognizer. It fails with 503 when unavailable, and 403 when Speech permission is missing."
       }
     },
     "postProcessing": {
@@ -561,6 +754,22 @@
         "failed": "Diagnostic failed: {{error}}"
       }
     },
+    "appearance": {
+      "title": "Appearance",
+      "description": "Customize how Handy looks",
+      "accent": {
+        "title": "Accent color",
+        "description": "Choose the highlight color used throughout the app",
+        "options": {
+          "pink": "Pink",
+          "orange": "Orange",
+          "purple": "Purple",
+          "green": "Green",
+          "blue": "Blue",
+          "red": "Red"
+        }
+      }
+    },
     "about": {
       "title": "About",
       "version": {
@@ -608,7 +817,13 @@
     "portableUpdateMessage": "Portable installs cannot be updated automatically. Download the installer for your system below, run it, and install to the same folder — your Data/ folder (settings, models, recordings) is kept in place.",
     "portableUpdateButton": "Download installer",
     "portableUpdateBrowseMessage": "Portable installs cannot be updated automatically. Download the latest version for your system from GitHub Releases and install it to the same folder — your Data/ folder (settings, models, recordings) is kept in place.",
-    "portableUpdateBrowseButton": "Open GitHub Releases"
+    "portableUpdateBrowseButton": "Open GitHub Releases",
+    "harper": {
+      "label": "Spell check",
+      "ready": "Grammar & spelling engine ready",
+      "initializing": "Initializing grammar & spelling engine…",
+      "disabled": "Spell check disabled"
+    }
   },
   "whatsNew": {
     "title": "New in Handy v{{version}}"
@@ -616,10 +831,14 @@
   "common": {
     "loading": "Loading...",
     "delete": "Delete",
+    "cancel": "Cancel",
     "close": "Close",
     "open": "Open",
     "copy": "Copy",
     "clear": "Clear",
+    "save": "Save",
+    "edit": "Edit",
+    "add": "Add",
     "noOptionsFound": "No options found"
   },
   "accessibility": {
@@ -671,5 +890,185 @@
     "learnMore": "How to fix",
     "recorderBlocked": "Can't record shortcuts right now — macOS Secure Input is blocking key events. Resolve the Secure Input warning first.",
     "dismiss": "Dismiss"
+  },
+  "dictation": {
+    "title": "Transcribe",
+    "description": "Type a prompt or dictate with the active speech-to-text model.",
+    "placeholder": "Type here or press the mic to dictate…",
+    "startRecording": "Start dictation",
+    "stopRecording": "Stop dictation",
+    "recording": "Recording…",
+    "transcribing": "Transcribing…",
+    "noModel": "No transcription model selected",
+    "noModelDescription": "Choose or download a model in the Models tab, or use the device's built-in speech recognition — no download needed.",
+    "useOnDevice": "Use device speech recognition",
+    "useOnDeviceFailed": "Couldn’t enable device speech recognition",
+    "micError": "Couldn't start recording: {{error}}",
+    "empty": "No speech detected.",
+    "copied": "Copied to clipboard",
+    "spellCheck": "Spell check",
+    "cancel": "Cancel"
+  },
+  "home": {
+    "title": "Prompt Studio",
+    "openPromptLibrary": "Open Prompt Library",
+    "openSettings": "Open Settings",
+    "description": "Write prompts here, review them with the built-in spell and grammar checker, then paste them into any app. Every paste is logged below so you always know what was sent and when.",
+    "placeholder": "Write your prompt here — or dictate it with the mic…",
+    "startRecording": "Start dictation",
+    "stopRecording": "Stop dictation",
+    "recording": "Recording…",
+    "transcribing": "Transcribing…",
+    "cancel": "Cancel",
+    "paste": "Paste",
+    "pasted": "Prompt pasted into the active app",
+    "pasteFailed": "Couldn't paste the prompt",
+    "micError": "Couldn't start recording: {{error}}",
+    "noSpeech": "No speech detected.",
+    "spellCheck": "Spell check",
+    "toolbar": {
+      "undo": "Undo",
+      "redo": "Redo",
+      "paragraph": "Paragraph",
+      "heading1": "Heading 1",
+      "heading2": "Heading 2",
+      "heading3": "Heading 3",
+      "bold": "Bold",
+      "italic": "Italic",
+      "underline": "Underline",
+      "strike": "Strikethrough",
+      "bulletList": "Bullet list",
+      "orderedList": "Numbered list",
+      "blockquote": "Quote",
+      "codeBlock": "Code block"
+    },
+    "noModel": "No transcription model selected",
+    "noModelDescription": "Choose or download a model in the Models tab, or use the device's built-in speech recognition — no download needed.",
+    "useOnDevice": "Use device speech recognition",
+    "useOnDeviceFailed": "Couldn’t enable device speech recognition",
+    "grantAccessHelp": "How to grant access",
+    "history": {
+      "title": "Pasted prompts",
+      "description": "Every prompt pasted from the Prompt Studio, with the time it was sent.",
+      "open": "Open pasted prompts",
+      "empty": "Nothing pasted yet. Prompts you paste are logged here.",
+      "loading": "Loading…",
+      "noResults": "No prompts match your search.",
+      "searchPlaceholder": "Search pasted prompts…",
+      "clear": "Clear all",
+      "clearTitle": "Clear paste history",
+      "clearConfirm": "Delete all {{count}} pasted prompts?",
+      "clearFailed": "Couldn't clear the history",
+      "copy": "Copy prompt",
+      "reuse": "Load into the prompt box",
+      "delete": "Delete prompt",
+      "deleteFailed": "Couldn't delete the prompt"
+    }
+  },
+  "workbench": {
+    "title": "Prompt Workbench",
+    "placeholder": "Write your prompt here — or dictate it with the mic…",
+    "insertFromLibrary": "Insert from Library"
+  },
+  "promptStudio": {
+    "composerPlaceholder": "Write or insert a prompt…",
+    "searchPlaceholder": "Search prompts…",
+    "searchAriaLabel": "Search prompts",
+    "allFolders": "All",
+    "allTags": "All tags",
+    "send": "Send",
+    "insert": "Insert",
+    "copy": "Copy",
+    "clear": "Clear",
+    "sending": "Sending…",
+    "sent": "Pasted into the active app",
+    "sendFailed": "Couldn't paste",
+    "copied": "Copied",
+    "noPrompts": "No prompts yet",
+    "noResults": "No prompts match",
+    "showAll": "Show all in Library",
+    "showLess": "Show less",
+    "library": "Library",
+    "history": "Recent inserts",
+    "historyEmpty": "Nothing pasted yet",
+    "historyShowAll": "View all",
+    "historyReuse": "Load",
+    "newPrompt": "New",
+    "variables": "Variables",
+    "spellCheck": "Spell check",
+    "sidebarHint": "Library & pasted prompts live in the sidebar. Use handy prompt search / handy skill use in your terminal."
+  },
+  "transcribe": {
+    "dropTitle": "Drop an audio file to transcribe",
+    "dropHint": "Supported formats: {{formats}} — decoded locally, nothing is uploaded",
+    "browseFiles": "or click to browse",
+    "phase": {
+      "decoding": "Decoding audio…",
+      "loadingModel": "Loading model…",
+      "finalizing": "Finalizing…"
+    },
+    "result": "Transcription",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "tryAgain": "Pick another file or try again."
+  },
+  "screenshots": {
+    "title": "Screenshots",
+    "description": "Captured UI screenshots for README and store listings. Pick which ones to publish to GitHub.",
+    "experimentalBadge": "Experimental — not committed to GitHub yet",
+    "publish": "Publish",
+    "selectAll": "Select all",
+    "selectNone": "Select none",
+    "copyMarkdown": "Copy markdown table",
+    "copied": "Copied!",
+    "markdownPreview": "Markdown table preview",
+    "emptySelection": "No screenshots selected.",
+    "missing": "Missing: {{file}}",
+    "runCaptureHint": "Run capture script first: bun run screenshots:capture",
+    "howToTitle": "How to use",
+    "howToCaptureLine": "{{command}} — captures all personas to screenshots/",
+    "howToViewLine": "{{url}} — view this gallery in the browser",
+    "howToPublish": "Check the screenshots you want to publish, copy the markdown table, and paste it into the README or PR.",
+    "dimensions": "{{file}} · {{width}}px",
+    "pathLabel": "screenshots/{{file}}",
+    "table": {
+      "preview": "Preview",
+      "file": "File",
+      "description": "Description"
+    },
+    "items": {
+      "dictateDesktop": {
+        "title": "Dictate — Desktop",
+        "description": "Dictation persona with the prompt editor and spell check."
+      },
+      "promptDesktop": {
+        "title": "Prompt Studio — Desktop",
+        "description": "Full-width Prompt Workbench with format toolbar and library insert."
+      },
+      "transcribeDesktop": {
+        "title": "Transcribe — Desktop",
+        "description": "Audio file drop zone and transcription result view."
+      },
+      "toolbarDropdown": {
+        "title": "Toolbar dropdown",
+        "description": "Experimental toolbar dropdown open (settings/model controls)."
+      },
+      "promptExpanded": {
+        "title": "Prompt Studio — Expanded",
+        "description": "Prompt Workbench with example content and expanded editor state."
+      },
+      "dictateMobile": {
+        "title": "Dictate — Mobile",
+        "description": "Dictation persona at 390px mobile width."
+      },
+      "promptMobile": {
+        "title": "Prompt Studio — Mobile",
+        "description": "Prompt Workbench at 390px mobile width."
+      },
+      "transcribeMobile": {
+        "title": "Transcribe — Mobile",
+        "description": "File transcription persona at 390px mobile width."
+      }
+    }
   }
 }

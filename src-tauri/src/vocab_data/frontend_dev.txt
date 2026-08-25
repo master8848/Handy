@@ -1,0 +1,215 @@
+# source: https://developer.mozilla.org/en-US/docs/Glossary https://www.w3.org/TR/WCAG22/#glossary
+
+Accessibility
+Accessibility tree
+Accessible authentication
+Accessible name
+AJAX
+Apple Safari
+ARIA
+Assistive technology
+Audio description
+BigInt
+Brotli compression
+Browsing context
+Bun
+Cache
+Call stack
+Callback function
+Camel case
+CAPTCHA
+CDN
+Closure
+Code splitting
+Continuous integration
+Copyleft
+CORS
+Crawler
+Cross-site request forgery
+Cross-site scripting
+CRUD
+CSP
+CSS
+CSS pixel
+Cumulative layout shift
+Debounce
+Deno
+Deserialization
+Django
+Doctype
+DOM
+Domain sharding
+DSL
+Dynamic typing
+ECMAScript
+Encapsulation
+Falsy
+FastAPI
+Favicon
+Federated identity
+Fingerprinting
+First contentful paint
+First input delay
+Flexbox
+Fork
+Fragmentainer
+FTP
+Fuzz testing
+Garbage collection
+Gecko
+GIF
+Git
+Google Chrome
+GPL
+GPU
+Graceful degradation
+gzip
+Hash routing
+Head of line blocking
+HMAC
+Hoisting
+Houdini
+HTML
+HTML5
+HTTP
+HTTP header
+HTTPS
+IDE
+Idempotent
+IIFE
+Immutable
+IndexedDB
+Information architecture
+Input method editor
+Interaction to next paint
+Internationalization
+IPv4
+IPv6
+Jank
+JavaScript
+JIT
+JPEG
+JSON
+Kebab case
+Locale
+Localization
+Main thread
+MathML
+Media query
+Metadata
+Microsoft Edge
+middleware
+MIME
+MIME type
+Minification
+Mixin
+Mobile first
+Mozilla Firefox
+Multi-factor authentication
+MVC
+Name role value
+Namespace
+NaN
+NAT
+Non-text content
+Nonce
+Nullish
+OOP
+OpenGL
+OpenSSL
+OWASP
+Polyfill
+Polymorphism
+Prefetch
+Prerender
+Principle of least privilege
+Progressive enhancement
+Progressive web app
+Proxy server
+Pseudo-class
+Pseudo-element
+Public key cryptography
+Python
+QUIC
+RDF
+React
+Recursion
+Reflow
+Regular expression
+Render-blocking
+Repaint
+Repo
+Responsive web design
+REST
+REST API
+RGB
+RSS
+RTL
+Same-origin policy
+Screen reader
+SDK
+Secure context
+Selector
+SEO
+Serialization
+Server-side rendering
+Session hijacking
+Shadow tree
+sharding
+SIMD
+Single page application
+SMTP
+Snake case
+SOAP
+Social engineering
+Source map
+SQL
+SQL injection
+SRI
+Static site generator
+Strict mode
+SVG
+SVN
+Symmetric key cryptography
+Tailwind CSS
+TCP
+TCP handshake
+Telnet
+Throttle
+Time to first byte
+Time to interactive
+TLD
+Tree shaking
+Truthy
+TTL
+Type coercion
+TypeScript
+UI
+Unicode
+URI
+URL
+useEffect
+User agent
+User inactivity
+User interface component
+UUID
+UX
+Vendor prefix
+Viewport
+Vite
+VoIP
+W3C
+WAI
+WCAG
+WebAssembly
+WebDAV
+WebGL
+WebKit
+WebM
+WebP
+WebRTC
+WebSocket
+WebVTT
+WHATWG
+XML
+XPath

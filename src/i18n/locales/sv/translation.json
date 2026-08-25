@@ -11,12 +11,14 @@
   },
   "sidebar": {
     "general": "Allmänt",
+    "appearance": "Utseende",
     "models": "Modeller",
     "advanced": "Avancerat",
     "postProcessing": "Efterbearbetning",
     "history": "Historik",
     "debug": "Felsökning",
-    "about": "Om"
+    "about": "Om",
+    "transcribe": "Transcribe"
   },
   "onboarding": {
     "subtitle": "För att komma igång, välj en transkriptionsmodell",
@@ -143,6 +145,11 @@
     "downloadSpeed": "{{speed}} MB/s",
     "cancel": "Avbryt",
     "cancelDownload": "Avbryt nedladdning",
+    "loaded": "Inläst",
+    "loadedCount": "{{count}} inlästa",
+    "unload": "Avlasta",
+    "unloadTooltip": "Avlasta modellen från minnet",
+    "builtIn": "Inbyggd",
     "capabilities": {
       "languageSelection": "Stöder flera indataspråk",
       "singleLanguage": "Stöder endast detta språk",
@@ -152,7 +159,8 @@
       "translate": "Översätt till engelska",
       "streaming": "Visar transkription i realtid medan du talar"
     },
-    "legacy": "Äldre"
+    "legacy": "Äldre",
+    "loadedModels": "Loaded models"
   },
   "settings": {
     "modelSettings": {
@@ -211,6 +219,16 @@
         "allLanguages": "Alla språk"
       },
       "noModelsMatch": "Inga modeller matchar detta filter.",
+      "loadedHint": "Klicka för att växla direkt",
+      "multiModel": {
+        "title": "Läs in flera modeller samtidigt",
+        "description": "Håll flera modeller i minnet för att växla direkt och jämföra transkriptioner. Använder mer RAM."
+      },
+      "osSpeech": {
+        "authRequired": "Tillstånd krävs för att använda enhetens taligenkänning",
+        "grantPermission": "Bevilja tillstånd",
+        "retry": "Försök igen"
+      },
       "searchPlaceholder": "Sök modeller efter namn…",
       "rescan": {
         "label": "Skanna om",
@@ -368,6 +386,35 @@
       "voiceActivityDetection": {
         "title": "Röstaktivitetsdetektering",
         "description": "Filtrerar bort tystnad från inspelningar. Modeller med streamingstöd använder en längre VAD-svans; om VAD inaktiveras spelas rått ljud in."
+      },
+      "customWordDatasets": {
+        "title": "Word Datasets",
+        "description": "Term lists that improve recognition of names and specialized terms. Toggle a dataset on to feed its terms to the model; every transcription is also fuzzy-corrected against enabled terms.",
+        "activeWords_one": "{{count}} word active",
+        "activeWords_other": "{{count}} words active",
+        "builtinBadge": "Built-in",
+        "words_one": "{{count}} word",
+        "words_other": "{{count}} words",
+        "expanded": "Show words",
+        "collapsed": "Hide words",
+        "toggle": "Toggle dataset",
+        "readOnlyHint": "Built-in datasets are read-only. Toggle them on or off.",
+        "addWordPlaceholder": "Add a term",
+        "add": "Add",
+        "removeWord": "Remove {{word}}",
+        "duplicateWord": "\"{{word}}\" already exists in this dataset",
+        "newDatasetPlaceholder": "Dataset name",
+        "create": "Create",
+        "deleteDataset": "Delete dataset",
+        "deleteConfirm": "Delete \"{{name}}\"? This cannot be undone.",
+        "rename": "Rename",
+        "importButton": "Import .txt",
+        "importSuccess": "Imported \"{{name}}\" with {{count}} words",
+        "importFailed": "Import failed: {{error}}",
+        "export": "Export",
+        "exportSuccess": "Exported \"{{name}}\"",
+        "exportFailed": "Export failed: {{error}}",
+        "emptyList": "No datasets yet. Create your own or import a .txt file with one term per line."
       }
     },
     "postProcessing": {
@@ -561,6 +608,22 @@
         "error": "Det gick inte att förhandsvisa versionsinformationen"
       }
     },
+    "appearance": {
+      "title": "Utseende",
+      "description": "Anpassa hur Handy ser ut",
+      "accent": {
+        "title": "Accentfärg",
+        "description": "Välj den färg som används som betoning i hela appen",
+        "options": {
+          "pink": "Rosa",
+          "orange": "Orange",
+          "purple": "Lila",
+          "green": "Grön",
+          "blue": "Blå",
+          "red": "Röd"
+        }
+      }
+    },
     "about": {
       "title": "Om",
       "version": {
@@ -608,7 +671,13 @@
     "portableUpdateMessage": "Portabla installationer kan inte uppdateras automatiskt. Ladda ner installeraren för ditt system nedan, kör den och installera i samma mapp — din Data/-mapp (inställningar, modeller, inspelningar) behålls.",
     "portableUpdateButton": "Ladda ner installeraren",
     "portableUpdateBrowseMessage": "Portabla installationer kan inte uppdateras automatiskt. Ladda ner den senaste versionen för ditt system från GitHub Releases och installera den i samma mapp — din Data/-mapp (inställningar, modeller, inspelningar) behålls.",
-    "portableUpdateBrowseButton": "Öppna GitHub Releases"
+    "portableUpdateBrowseButton": "Öppna GitHub Releases",
+    "harper": {
+      "label": "Spell check",
+      "ready": "Grammar & spelling engine ready",
+      "initializing": "Initializing grammar & spelling engine…",
+      "disabled": "Spell check disabled"
+    }
   },
   "common": {
     "loading": "Laddar...",
@@ -671,5 +740,22 @@
     "learnMore": "Så här löser du det",
     "recorderBlocked": "Det går inte att spela in kortkommandon just nu — macOS Secure Input blockerar tangenthändelser. Lös varningen om Secure Input först.",
     "dismiss": "Avfärda"
+  },
+  "dictation": {
+    "title": "Transcribe",
+    "description": "Type a prompt or dictate with the active speech-to-text model.",
+    "placeholder": "Type here or press the mic to dictate…",
+    "startRecording": "Start dictation",
+    "stopRecording": "Stop dictation",
+    "recording": "Recording…",
+    "transcribing": "Transcribing…",
+    "noModel": "No transcription model selected",
+    "noModelDescription": "Choose or download a model in the Models tab, or use the device's built-in speech recognition — no download needed.",
+    "useOnDevice": "Use device speech recognition",
+    "micError": "Couldn't start recording: {{error}}",
+    "empty": "No speech detected.",
+    "copied": "Copied to clipboard",
+    "spellCheck": "Spell check",
+    "cancel": "Cancel"
   }
 }

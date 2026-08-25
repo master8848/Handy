@@ -23,6 +23,7 @@ interface DownloadStats {
 interface ModelsStore {
   models: ModelInfo[];
   currentModel: string;
+  loadedModels: string[];
   downloadingModels: Record<string, true>;
   verifyingModels: Record<string, true>;
   extractingModels: Record<string, true>;
@@ -37,6 +38,8 @@ interface ModelsStore {
   initialize: () => Promise<void>;
   loadModels: () => Promise<void>;
   loadCurrentModel: () => Promise<void>;
+  loadLoadedModels: () => Promise<void>;
+  unloadModel: (modelId: string) => Promise<boolean>;
   rescanLocalModels: () => Promise<void>;
   selectModel: (modelId: string) => Promise<boolean>;
   downloadModel: (modelId: string) => Promise<boolean>;
@@ -59,6 +62,7 @@ export const useModelStore = create<ModelsStore>()(
   subscribeWithSelector((set, get) => ({
     models: [],
     currentModel: "",
+    loadedModels: [],
     downloadingModels: {},
     verifyingModels: {},
     extractingModels: {},
@@ -126,6 +130,31 @@ export const useModelStore = create<ModelsStore>()(
       }
     },
 
+    loadLoadedModels: async () => {
+      try {
+        const result = await commands.getLoadedModels();
+        if (result.status === "ok") {
+          set({ loadedModels: result.data });
+        }
+      } catch (err) {
+        console.error("Failed to load loaded models:", err);
+      }
+    },
+
+    unloadModel: async (modelId: string) => {
+      try {
+        const result = await commands.unloadModelById(modelId);
+        if (result.status === "ok") {
+          await get().loadLoadedModels();
+          return true;
+        }
+        return false;
+      } catch (err) {
+        console.error(`Failed to unload model ${modelId}:`, err);
+        return false;
+      }
+    },
+
     rescanLocalModels: async () => {
       set({ isRescanning: true });
       try {
@@ -148,6 +177,7 @@ export const useModelStore = create<ModelsStore>()(
         const result = await commands.setActiveModel(modelId);
         if (result.status === "ok") {
           set({ currentModel: modelId });
+          await get().loadLoadedModels();
           return true;
         } else {
           set({ error: `Failed to switch to model: ${result.error}` });
@@ -268,10 +298,10 @@ export const useModelStore = create<ModelsStore>()(
     initialize: async () => {
       if (get().initialized) return;
 
-      const { loadModels, loadCurrentModel } = get();
+      const { loadModels, loadCurrentModel, loadLoadedModels } = get();
 
       // Load initial data
-      await Promise.all([loadModels(), loadCurrentModel()]);
+      await Promise.all([loadModels(), loadCurrentModel(), loadLoadedModels()]);
 
       // Set up event listeners
       listen<DownloadProgress>("model-download-progress", (event) => {
@@ -414,11 +444,13 @@ export const useModelStore = create<ModelsStore>()(
       listen<string>("model-deleted", () => {
         get().loadModels();
         get().loadCurrentModel();
+        get().loadLoadedModels();
       });
 
       listen("model-state-changed", () => {
         get().loadModels();
         get().loadCurrentModel();
+        get().loadLoadedModels();
       });
 
       listen("models-updated", () => {

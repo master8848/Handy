@@ -1,0 +1,168 @@
+# source: https://developer.apple.com/help/glossary/ | https://developer.android.com/guide/components/fundamentals | https://docs.gradle.org/current/userguide/terminology.html | https://developer.android.com/guide/topics/permissions/overview
+
+AAB
+accessibility
+activity lifecycle
+Activity Manager
+ad hoc provisioning profile
+Android manifest
+Android Studio
+APK
+App Analytics
+app bundle
+app bundle format
+App Clip
+app component
+app delegate
+app group
+app icon
+App ID
+App Intents
+app manifest
+app preview
+App Review
+App Sandbox
+App Store
+App Store Connect
+App Store Connect API
+app thinning
+Apple Account
+Apple Developer Enterprise Program
+Apple Developer Program
+Apple ID
+Apple Intelligence
+Apple Pay
+Apple Push Notification service
+Apple Watch
+associated domains
+augmented reality
+AutoFill credential provider
+background fetch
+background modes
+background service
+beta testing
+broadcast receiver
+build script
+build string
+build variant
+bundle ID
+CarPlay
+ClassKit
+CloudKit
+CocoaPods
+Communication Notifications
+compile SDK
+composable
+constraint layout
+content provider
+Core Data
+coroutine
+dangerous permissions
+data binding
+data class
+data protection
+debug build
+deep link
+density independent pixel
+dependency
+dependency management
+developer account
+Developer ID certificate
+development provisioning profile
+distribution certificate
+distribution provisioning profile
+emulator
+entitlement
+extension function
+external testers
+Feedback Assistant
+Firebase
+flows
+foreground service
+fragment
+Game Center
+generic type
+gesture recognizer
+Google Play
+Google Play Console
+Gradle
+Gradle wrapper
+hardened runtime
+HealthKit
+HomeKit
+HomePod
+iCloud
+iCloud documents
+iCloud key-value storage
+iMessage
+in-app purchase
+inline function
+intent
+internal testers
+IPA
+iPad
+iPadOS
+iPhone
+Jetpack Compose
+keychain sharing
+Kotlin
+layout
+lifecycle
+localization
+machine learning
+macOS
+managed background assets
+metadata
+Metal
+min SDK
+normal permissions
+null safety
+onboarding flow
+permissions
+provisioning profile
+push notification
+Push to Talk
+Realm
+recycler view
+release build
+runtime permissions
+sandbox testing
+scene delegate
+SDK
+sealed class
+service
+SF Symbols
+Shared with You
+Sign in with Apple
+signature permissions
+signing certificate
+simulator
+Siri
+SKU
+state hoisting
+StoreKit
+Swift
+Swift Package Manager
+SwiftUI
+target SDK
+Team ID
+TestFlight
+TestFlight App Review
+Time Sensitive Notifications
+tvOS
+type safety
+UIKit
+universal link
+universal purchase
+version number
+view binding
+view controller
+view model
+visionOS
+Wallet
+watchOS
+WeatherKit
+widget
+WWDC
+Xcode
+Xcode Cloud

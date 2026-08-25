@@ -21,9 +21,9 @@ use tauri::{AppHandle, Emitter, Manager};
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 use crate::settings::APPLE_INTELLIGENCE_DEFAULT_MODEL_ID;
 use crate::settings::{
-    self, get_settings, AutoSubmitKey, ClipboardHandling, KeyboardImplementation, LLMPrompt,
-    OverlayPosition, OverlayStyle, PasteMethod, ShortcutBinding, SoundTheme, Theme, TypingTool,
-    APPLE_INTELLIGENCE_PROVIDER_ID,
+    self, get_settings, AccentColor, AutoSubmitKey, ClipboardHandling, KeyboardImplementation,
+    LLMPrompt, OverlayPosition, OverlayStyle, PasteMethod, ShortcutBinding, SoundTheme, Theme,
+    TypingTool, APPLE_INTELLIGENCE_PROVIDER_ID,
 };
 use crate::tray;
 
@@ -609,6 +609,18 @@ pub fn apply_window_theme(app: &AppHandle, theme: Theme) {
 
 #[tauri::command]
 #[specta::specta]
+pub fn change_accent_color_setting(
+    app: AppHandle,
+    accent_color: AccentColor,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.accent_color = accent_color;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
 pub fn change_translate_to_english_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
     let mut settings = settings::get_settings(&app);
     settings.translate_to_english = enabled;
@@ -806,6 +818,18 @@ pub fn change_whats_new_last_seen_version_setting(
 pub fn update_custom_words(app: AppHandle, words: Vec<String>) -> Result<(), String> {
     let mut settings = settings::get_settings(&app);
     settings.custom_words = words;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn update_text_replacements(
+    app: AppHandle,
+    replacements: Vec<settings::TextReplacement>,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.text_replacements = replacements;
     settings::write_settings(&app, settings);
     Ok(())
 }
@@ -1339,4 +1363,72 @@ pub async fn get_available_accelerators() -> crate::managers::transcription::Ava
     tauri::async_runtime::spawn_blocking(crate::managers::transcription::get_available_accelerators)
         .await
         .expect("get_available_accelerators panicked")
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_server_mode_enabled_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.server_mode_enabled = enabled;
+    // Ensure token exists when enabling
+    if enabled && settings.server_auth_token.is_none() {
+        settings.server_auth_token = Some(settings::generate_server_auth_token());
+    }
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_server_port_setting(app: AppHandle, port: u16) -> Result<(), String> {
+    if port == 0 {
+        return Err("Port must be non-zero".to_string());
+    }
+    let mut settings = settings::get_settings(&app);
+    settings.server_port = port;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn regenerate_server_token_setting(app: AppHandle) -> Result<String, String> {
+    let mut settings = settings::get_settings(&app);
+    let token = settings::generate_server_auth_token();
+    settings.server_auth_token = Some(token.clone());
+    settings::write_settings(&app, settings);
+    Ok(token)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_api_model_load_policy_setting(app: AppHandle, policy: crate::settings::ApiModelLoadPolicy) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.api_model_load_policy = policy;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_api_lazy_transcribe_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.api_lazy_transcribe = enabled;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_overlay_native_enabled_setting(
+    app: AppHandle,
+    enabled: bool,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.overlay_native_enabled = enabled;
+    let overlay_enabled = settings.overlay_style != crate::settings::OverlayStyle::None;
+    settings::write_settings(&app, settings);
+    // Keep cached flag in sync without restart (lib.rs startup also syncs)
+    crate::overlay::update_overlay_enabled_cache(overlay_enabled);
+    Ok(())
 }

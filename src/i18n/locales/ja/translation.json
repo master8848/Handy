@@ -11,12 +11,14 @@
   },
   "sidebar": {
     "general": "一般",
+    "appearance": "外観",
     "models": "モデル",
     "advanced": "詳細設定",
     "postProcessing": "後処理",
     "history": "履歴",
     "debug": "デバッグ",
-    "about": "概要"
+    "about": "概要",
+    "transcribe": "Transcribe"
   },
   "onboarding": {
     "subtitle": "開始するには、文字起こしのモデルを選択してください",
@@ -152,7 +154,13 @@
     },
     "cancel": "キャンセル",
     "cancelDownload": "ダウンロードをキャンセル",
-    "legacy": "旧式"
+    "loaded": "読み込み済み",
+    "loadedCount": "{{count}}個読み込み済み",
+    "unload": "アンロード",
+    "unloadTooltip": "モデルをメモリからアンロード",
+    "builtIn": "組み込み",
+    "legacy": "旧式",
+    "loadedModels": "Loaded models"
   },
   "settings": {
     "modelSettings": {
@@ -168,6 +176,16 @@
         "allLanguages": "すべての言語"
       },
       "noModelsMatch": "このフィルターに一致するモデルがありません。",
+      "loadedHint": "クリックして即座に切り替え",
+      "multiModel": {
+        "title": "複数のモデルを同時に読み込む",
+        "description": "複数のモデルをメモリに保持し、即座に切り替えて文字起こしを比較できます。RAMを多く消費します。"
+      },
+      "osSpeech": {
+        "authRequired": "デバイスの音声認識を使用するには権限が必要です",
+        "grantPermission": "権限を許可",
+        "retry": "再試行"
+      },
       "yourModels": "ダウンロード済みモデル",
       "availableModels": "ダウンロード可能",
       "searchPlaceholder": "モデルを名前で検索…",
@@ -368,6 +386,35 @@
       "voiceActivityDetection": {
         "title": "音声区間検出 (VAD)",
         "description": "録音から無音部分を除去します。ストリーミング対応モデルはより長い音声検出区間を使用します。VAD を無効にすると音声をそのまま録音します。"
+      },
+      "customWordDatasets": {
+        "title": "Word Datasets",
+        "description": "Term lists that improve recognition of names and specialized terms. Toggle a dataset on to feed its terms to the model; every transcription is also fuzzy-corrected against enabled terms.",
+        "activeWords_one": "{{count}} word active",
+        "activeWords_other": "{{count}} words active",
+        "builtinBadge": "Built-in",
+        "words_one": "{{count}} word",
+        "words_other": "{{count}} words",
+        "expanded": "Show words",
+        "collapsed": "Hide words",
+        "toggle": "Toggle dataset",
+        "readOnlyHint": "Built-in datasets are read-only. Toggle them on or off.",
+        "addWordPlaceholder": "Add a term",
+        "add": "Add",
+        "removeWord": "Remove {{word}}",
+        "duplicateWord": "\"{{word}}\" already exists in this dataset",
+        "newDatasetPlaceholder": "Dataset name",
+        "create": "Create",
+        "deleteDataset": "Delete dataset",
+        "deleteConfirm": "Delete \"{{name}}\"? This cannot be undone.",
+        "rename": "Rename",
+        "importButton": "Import .txt",
+        "importSuccess": "Imported \"{{name}}\" with {{count}} words",
+        "importFailed": "Import failed: {{error}}",
+        "export": "Export",
+        "exportSuccess": "Exported \"{{name}}\"",
+        "exportFailed": "Export failed: {{error}}",
+        "emptyList": "No datasets yet. Create your own or import a .txt file with one term per line."
       }
     },
     "postProcessing": {
@@ -561,6 +608,22 @@
         "error": "リリースノートのプレビューに失敗しました"
       }
     },
+    "appearance": {
+      "title": "外観",
+      "description": "Handy の見た目をカスタマイズします",
+      "accent": {
+        "title": "アクセントカラー",
+        "description": "アプリ全体で使用されるハイライトカラーを選択します",
+        "options": {
+          "pink": "ピンク",
+          "orange": "オレンジ",
+          "purple": "パープル",
+          "green": "グリーン",
+          "blue": "ブルー",
+          "red": "レッド"
+        }
+      }
+    },
     "about": {
       "title": "概要",
       "version": {
@@ -608,7 +671,13 @@
     "portableUpdateMessage": "ポータブル版は自動的に更新できません。下のボタンからお使いのシステム向けのインストーラーをダウンロードし、実行して同じフォルダーにインストールしてください。Data フォルダー(設定、モデル、録音)はそのまま残ります。",
     "portableUpdateButton": "インストーラーをダウンロード",
     "portableUpdateBrowseMessage": "ポータブル版は自動的に更新できません。GitHub Releases からお使いのシステム向けの最新版をダウンロードし、同じフォルダーにインストールしてください。Data フォルダー(設定、モデル、録音)はそのまま残ります。",
-    "portableUpdateBrowseButton": "GitHub Releases を開く"
+    "portableUpdateBrowseButton": "GitHub Releases を開く",
+    "harper": {
+      "label": "Spell check",
+      "ready": "Grammar & spelling engine ready",
+      "initializing": "Initializing grammar & spelling engine…",
+      "disabled": "Spell check disabled"
+    }
   },
   "common": {
     "loading": "読み込み中…",
@@ -671,5 +740,22 @@
     "learnMore": "解決方法",
     "recorderBlocked": "現在ショートカットを記録できません。macOS の Secure Input がキーイベントをブロックしています。先に Secure Input の警告を解消してください。",
     "dismiss": "閉じる"
+  },
+  "dictation": {
+    "title": "Transcribe",
+    "description": "Type a prompt or dictate with the active speech-to-text model.",
+    "placeholder": "Type here or press the mic to dictate…",
+    "startRecording": "Start dictation",
+    "stopRecording": "Stop dictation",
+    "recording": "Recording…",
+    "transcribing": "Transcribing…",
+    "noModel": "No transcription model selected",
+    "noModelDescription": "Choose or download a model in the Models tab, or use the device's built-in speech recognition — no download needed.",
+    "useOnDevice": "Use device speech recognition",
+    "micError": "Couldn't start recording: {{error}}",
+    "empty": "No speech detected.",
+    "copied": "Copied to clipboard",
+    "spellCheck": "Spell check",
+    "cancel": "Cancel"
   }
 }

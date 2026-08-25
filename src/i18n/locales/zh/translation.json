@@ -11,12 +11,14 @@
   },
   "sidebar": {
     "general": "通用",
+    "appearance": "外观",
     "models": "模型",
     "advanced": "高级",
     "postProcessing": "后处理",
     "history": "历史记录",
     "debug": "调试",
-    "about": "关于"
+    "about": "关于",
+    "transcribe": "Transcribe"
   },
   "onboarding": {
     "subtitle": "请选择一个转录模型以开始使用",
@@ -152,7 +154,13 @@
     },
     "cancel": "取消",
     "cancelDownload": "取消下载",
-    "legacy": "旧版"
+    "loaded": "已加载",
+    "loadedCount": "{{count}} 个已加载",
+    "unload": "卸载",
+    "unloadTooltip": "从内存中卸载模型",
+    "builtIn": "内置",
+    "legacy": "旧版",
+    "loadedModels": "Loaded models"
   },
   "settings": {
     "modelSettings": {
@@ -168,6 +176,16 @@
         "allLanguages": "所有语言"
       },
       "noModelsMatch": "没有符合此筛选条件的模型。",
+      "loadedHint": "点击即可立即切换",
+      "multiModel": {
+        "title": "同时加载多个模型",
+        "description": "在内存中保留多个模型，可即时切换并比较转录结果。会占用更多内存。"
+      },
+      "osSpeech": {
+        "authRequired": "使用设备语音识别需要权限",
+        "grantPermission": "授予权限",
+        "retry": "重试"
+      },
       "yourModels": "已下载的模型",
       "availableModels": "可供下载",
       "searchPlaceholder": "按名称搜索模型…",
@@ -368,6 +386,35 @@
       "voiceActivityDetection": {
         "title": "语音活动检测",
         "description": "过滤录音中的静音。支持流式的模型会使用更长的 VAD 尾段；停用 VAD 则会录制原始音频。"
+      },
+      "customWordDatasets": {
+        "title": "Word Datasets",
+        "description": "Term lists that improve recognition of names and specialized terms. Toggle a dataset on to feed its terms to the model; every transcription is also fuzzy-corrected against enabled terms.",
+        "activeWords_one": "{{count}} word active",
+        "activeWords_other": "{{count}} words active",
+        "builtinBadge": "Built-in",
+        "words_one": "{{count}} word",
+        "words_other": "{{count}} words",
+        "expanded": "Show words",
+        "collapsed": "Hide words",
+        "toggle": "Toggle dataset",
+        "readOnlyHint": "Built-in datasets are read-only. Toggle them on or off.",
+        "addWordPlaceholder": "Add a term",
+        "add": "Add",
+        "removeWord": "Remove {{word}}",
+        "duplicateWord": "\"{{word}}\" already exists in this dataset",
+        "newDatasetPlaceholder": "Dataset name",
+        "create": "Create",
+        "deleteDataset": "Delete dataset",
+        "deleteConfirm": "Delete \"{{name}}\"? This cannot be undone.",
+        "rename": "Rename",
+        "importButton": "Import .txt",
+        "importSuccess": "Imported \"{{name}}\" with {{count}} words",
+        "importFailed": "Import failed: {{error}}",
+        "export": "Export",
+        "exportSuccess": "Exported \"{{name}}\"",
+        "exportFailed": "Export failed: {{error}}",
+        "emptyList": "No datasets yet. Create your own or import a .txt file with one term per line."
       }
     },
     "postProcessing": {
@@ -561,6 +608,22 @@
         "error": "无法预览发行说明"
       }
     },
+    "appearance": {
+      "title": "外观",
+      "description": "自定义 Handy 的外观",
+      "accent": {
+        "title": "强调色",
+        "description": "选择应用中使用的高亮颜色",
+        "options": {
+          "pink": "粉色",
+          "orange": "橙色",
+          "purple": "紫色",
+          "green": "绿色",
+          "blue": "蓝色",
+          "red": "红色"
+        }
+      }
+    },
     "about": {
       "title": "关于",
       "version": {
@@ -608,7 +671,13 @@
     "portableUpdateMessage": "便携版无法自动更新。请通过下方按钮下载适用于你的系统的安装程序，运行后安装到同一文件夹，你的 Data/ 文件夹（设置、模型、录音）会保留在原处。",
     "portableUpdateButton": "下载安装程序",
     "portableUpdateBrowseMessage": "便携版无法自动更新。请从 GitHub Releases 下载适用于你的系统的最新版本，并安装到同一文件夹，你的 Data/ 文件夹（设置、模型、录音）会保留在原处。",
-    "portableUpdateBrowseButton": "打开 GitHub Releases"
+    "portableUpdateBrowseButton": "打开 GitHub Releases",
+    "harper": {
+      "label": "Spell check",
+      "ready": "Grammar & spelling engine ready",
+      "initializing": "Initializing grammar & spelling engine…",
+      "disabled": "Spell check disabled"
+    }
   },
   "common": {
     "loading": "加载中...",
@@ -671,5 +740,22 @@
     "learnMore": "如何解决",
     "recorderBlocked": "当前无法录制快捷键——macOS 的 Secure Input 正在阻止按键事件。请先解决 Secure Input 警告。",
     "dismiss": "关闭"
+  },
+  "dictation": {
+    "title": "Transcribe",
+    "description": "Type a prompt or dictate with the active speech-to-text model.",
+    "placeholder": "Type here or press the mic to dictate…",
+    "startRecording": "Start dictation",
+    "stopRecording": "Stop dictation",
+    "recording": "Recording…",
+    "transcribing": "Transcribing…",
+    "noModel": "No transcription model selected",
+    "noModelDescription": "Choose or download a model in the Models tab, or use the device's built-in speech recognition — no download needed.",
+    "useOnDevice": "Use device speech recognition",
+    "micError": "Couldn't start recording: {{error}}",
+    "empty": "No speech detected.",
+    "copied": "Copied to clipboard",
+    "spellCheck": "Spell check",
+    "cancel": "Cancel"
   }
 }

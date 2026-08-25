@@ -1,0 +1,221 @@
+# source: https://www.law.cornell.edu/wex/wex_definitions, https://www.nolo.com/dictionary
+
+ab initio
+accessory
+accomplice
+actus reus
+ad hoc
+ad valorem
+adverse possession
+affidavit
+aid and abet
+alibi
+alimony
+amicus curiae
+annulment
+anticipatory breach
+appeal
+appellant
+appellee
+arbitration
+arraignment
+arrest warrant
+arson
+assault
+assault and battery
+attorney general
+attorney in fact
+attorney-client privilege
+bail
+bailiff
+battery
+bench trial
+bench warrant
+beneficiary
+bequest
+beyond a reasonable doubt
+bona fide
+breach of contract
+burden of proof
+burglary
+capital punishment
+caveat emptor
+certiorari
+challenge for cause
+character evidence
+child support
+circumstantial evidence
+closing argument
+codicil
+collateral estoppel
+community property
+comparative negligence
+compensatory damages
+complaint
+conflict of interest
+conspiracy
+contempt of court
+contributory negligence
+conviction
+corpus delicti
+counterclaim
+covenant not to compete
+cross-examination
+damages
+de facto
+de jure
+de minimis
+de novo
+decedent
+defamation
+default judgment
+defendant
+deposition
+directed verdict
+discovery
+domestic violence
+double jeopardy
+due process
+durable power of attorney
+duress
+duty of care
+duty of loyalty
+easement
+embezzlement
+eminent domain
+en banc
+entrapment
+equal protection
+escrow
+estoppel
+eviction
+ex parte
+ex post facto
+executor
+expert witness
+extradition
+eyewitness
+false imprisonment
+fee simple
+felony
+fiduciary duty
+Fifth Amendment
+first-degree murder
+FOIA
+force majeure
+forgery
+forum non conveniens
+fraud
+garnishment
+good faith
+grand jury
+grand larceny
+gross negligence
+habeas corpus
+hearsay
+heir
+holographic will
+homicide
+hung jury
+in camera
+in forma pauperis
+in personam
+in rem
+indemnification
+indictment
+injunction
+insanity defense
+intentional tort
+intestate
+judgment
+judicial review
+jurisdiction
+jury duty
+jury nullification
+kidnapping
+larceny
+last will and testament
+levy
+libel
+lien
+living will
+malpractice
+mandamus
+manslaughter
+mediation
+mens rea
+Miranda rights
+Miranda warning
+misdemeanor
+mistrial
+modus operandi
+motion
+motion in limine
+motion to dismiss
+motion to quash
+negligence
+negligence per se
+nolo contendere
+notary public
+obstruction of justice
+opening statement
+parole
+per curiam
+peremptory challenge
+perjury
+permanent injunction
+plaintiff
+plea bargain
+power of attorney
+precedent
+preliminary injunction
+prenuptial agreement
+preponderance of the evidence
+presumption of innocence
+prima facie
+pro bono
+pro se
+probable cause
+probation
+promissory estoppel
+punitive damages
+quantum meruit
+quid pro quo
+quiet enjoyment
+quitclaim deed
+reasonable doubt
+redirect examination
+res ipsa loquitur
+res judicata
+respondent
+restitution
+restraining order
+robbery
+SCOTUS
+search warrant
+self-defense
+self-incrimination
+settlement
+slander
+specific performance
+stare decisis
+statute of frauds
+statute of limitations
+strict liability
+subpoena
+subpoena duces tecum
+summary judgment
+summons
+temporary restraining order
+testator
+tort
+tortfeasor
+trespass
+trial de novo
+ultra vires
+venue
+verdict
+voir dire
+voluntary manslaughter
+whistleblower
+writ of certiorari

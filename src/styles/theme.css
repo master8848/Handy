@@ -47,3 +47,52 @@
     --color-error: var(--dark-color-error);
   }
 }
+
+/* Accent color palette, driven by the `accent_color` setting via
+   `document.documentElement.dataset.accent` (see src/lib/utils/theme.ts).
+   Each accent overrides the light/dark logo pairs and the theme-independent
+   UI background token. The active tokens (`--color-logo-primary` etc.) and
+   the `data-theme` overrides in App.css reference those pairs, so the two
+   dimensions compose: `data-accent` picks the pair, `data-theme` (or the
+   prefers-color-scheme media query above) picks which side is active.
+   The default accent (Pink) is defined in `:root` above; keep the hex values
+   here in sync with the ACCENT_SWATCHES map in AccentSelector.tsx. */
+:root[data-accent="orange"] {
+  --light-color-logo-primary: #ffb37e;
+  --dark-color-logo-primary: #ff9f57;
+  --light-color-logo-stroke: #4a2c1a;
+  --dark-color-logo-stroke: #ffe2c9;
+  --color-background-ui: #d97b06;
+}
+
+:root[data-accent="purple"] {
+  --light-color-logo-primary: #c9a6f5;
+  --dark-color-logo-primary: #b98cf0;
+  --light-color-logo-stroke: #33224a;
+  --dark-color-logo-stroke: #e9dcfa;
+  --color-background-ui: #7c3aed;
+}
+
+:root[data-accent="green"] {
+  --light-color-logo-primary: #a8e3b8;
+  --dark-color-logo-primary: #8fd8a3;
+  --light-color-logo-stroke: #1c3a24;
+  --dark-color-logo-stroke: #ddf5e3;
+  --color-background-ui: #15803d;
+}
+
+:root[data-accent="blue"] {
+  --light-color-logo-primary: #a5c7f5;
+  --dark-color-logo-primary: #8eb6f2;
+  --light-color-logo-stroke: #1d2c40;
+  --dark-color-logo-stroke: #dceafd;
+  --color-background-ui: #2563eb;
+}
+
+:root[data-accent="red"] {
+  --light-color-logo-primary: #f5a9a9;
+  --dark-color-logo-primary: #f28d8d;
+  --light-color-logo-stroke: #401d1d;
+  --dark-color-logo-stroke: #fadcdc;
+  --color-background-ui: #dc2626;
+}

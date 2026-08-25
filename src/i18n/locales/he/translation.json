@@ -11,12 +11,14 @@
   },
   "sidebar": {
     "general": "כללי",
+    "appearance": "מראה",
     "models": "מודלים",
     "advanced": "מתקדם",
     "postProcessing": "עיבוד משלים",
     "history": "היסטוריה",
     "debug": "ניפוי שגיאות",
-    "about": "אודות"
+    "about": "אודות",
+    "transcribe": "Transcribe"
   },
   "onboarding": {
     "subtitle": "כדי להתחיל, בחר מודל תמלול",
@@ -143,6 +145,11 @@
     "downloadSpeed": "{{speed}} MB/s",
     "cancel": "ביטול",
     "cancelDownload": "בטל הורדה",
+    "loaded": "נטען",
+    "loadedCount": "{{count}} נטענו",
+    "unload": "פריקה",
+    "unloadTooltip": "פריקת מודל מהזיכרון",
+    "builtIn": "מובנה",
     "capabilities": {
       "languageSelection": "תומך בכמה שפות קלט",
       "singleLanguage": "תומך רק בשפה הזו",
@@ -152,7 +159,8 @@
       "translate": "תרגם לאנגלית",
       "streaming": "מציג תמלול חי תוך כדי דיבור"
     },
-    "legacy": "מדור קודם"
+    "legacy": "מדור קודם",
+    "loadedModels": "Loaded models"
   },
   "settings": {
     "modelSettings": {
@@ -211,6 +219,16 @@
         "allLanguages": "כל השפות"
       },
       "noModelsMatch": "אין מודלים שמתאימים לסינון הזה.",
+      "loadedHint": "לחץ כדי לעבור מיידית",
+      "multiModel": {
+        "title": "טעינת מספר מודלים בבת אחת",
+        "description": "שמור כמה מודלים בזיכרון כדי לעבור ביניהם מיידית ולהשוות תמלולים. צורך יותר זיכרון RAM."
+      },
+      "osSpeech": {
+        "authRequired": "דרושה הרשאה לשימוש בזיהוי הדיבור של המכשיר",
+        "grantPermission": "מתן הרשאה",
+        "retry": "נסה שוב"
+      },
       "searchPlaceholder": "חיפוש מודלים לפי שם…",
       "rescan": {
         "label": "סריקה מחדש",
@@ -368,6 +386,35 @@
       "voiceActivityDetection": {
         "title": "זיהוי פעילות קולית",
         "description": "סינון שקט מההקלטות. מודלים התומכים בסטרימינג משתמשים בזנב VAD ארוך יותר; ביטול VAD מקליט אודיו גולמי."
+      },
+      "customWordDatasets": {
+        "title": "Word Datasets",
+        "description": "Term lists that improve recognition of names and specialized terms. Toggle a dataset on to feed its terms to the model; every transcription is also fuzzy-corrected against enabled terms.",
+        "activeWords_one": "{{count}} word active",
+        "activeWords_other": "{{count}} words active",
+        "builtinBadge": "Built-in",
+        "words_one": "{{count}} word",
+        "words_other": "{{count}} words",
+        "expanded": "Show words",
+        "collapsed": "Hide words",
+        "toggle": "Toggle dataset",
+        "readOnlyHint": "Built-in datasets are read-only. Toggle them on or off.",
+        "addWordPlaceholder": "Add a term",
+        "add": "Add",
+        "removeWord": "Remove {{word}}",
+        "duplicateWord": "\"{{word}}\" already exists in this dataset",
+        "newDatasetPlaceholder": "Dataset name",
+        "create": "Create",
+        "deleteDataset": "Delete dataset",
+        "deleteConfirm": "Delete \"{{name}}\"? This cannot be undone.",
+        "rename": "Rename",
+        "importButton": "Import .txt",
+        "importSuccess": "Imported \"{{name}}\" with {{count}} words",
+        "importFailed": "Import failed: {{error}}",
+        "export": "Export",
+        "exportSuccess": "Exported \"{{name}}\"",
+        "exportFailed": "Export failed: {{error}}",
+        "emptyList": "No datasets yet. Create your own or import a .txt file with one term per line."
       }
     },
     "postProcessing": {
@@ -561,6 +608,22 @@
         "error": "הצגת התצוגה המקדימה של הערות הגרסה נכשלה"
       }
     },
+    "appearance": {
+      "title": "מראה",
+      "description": "התאם אישית את המראה של Handy",
+      "accent": {
+        "title": "צבע הדגשה",
+        "description": "בחר את צבע ההדגשה המשמש בכל האפליקציה",
+        "options": {
+          "pink": "ורוד",
+          "orange": "כתום",
+          "purple": "סגול",
+          "green": "ירוק",
+          "blue": "כחול",
+          "red": "אדום"
+        }
+      }
+    },
     "about": {
       "title": "אודות",
       "version": {
@@ -608,7 +671,13 @@
     "portableUpdateMessage": "התקנות ניידות אינן מתעדכנות אוטומטית. הורד למטה את המתקין המתאים למערכת שלך, הפעל אותו והתקן לאותה תיקייה — תיקיית Data/ (הגדרות, מודלים, הקלטות) נשמרת במקומה.",
     "portableUpdateButton": "הורדת המתקין",
     "portableUpdateBrowseMessage": "התקנות ניידות אינן מתעדכנות אוטומטית. הורד את הגרסה האחרונה המתאימה למערכת שלך מ-GitHub Releases והתקן אותה לאותה תיקייה — תיקיית Data/ (הגדרות, מודלים, הקלטות) נשמרת במקומה.",
-    "portableUpdateBrowseButton": "פתח את GitHub Releases"
+    "portableUpdateBrowseButton": "פתח את GitHub Releases",
+    "harper": {
+      "label": "Spell check",
+      "ready": "Grammar & spelling engine ready",
+      "initializing": "Initializing grammar & spelling engine…",
+      "disabled": "Spell check disabled"
+    }
   },
   "common": {
     "loading": "טוען...",
@@ -671,5 +740,22 @@
     "learnMore": "איך לתקן את זה",
     "recorderBlocked": "לא ניתן להקליט קיצורים כרגע — Secure Input של macOS חוסם אירועי מקשים. פתור תחילה את אזהרת Secure Input.",
     "dismiss": "התעלם"
+  },
+  "dictation": {
+    "title": "Transcribe",
+    "description": "Type a prompt or dictate with the active speech-to-text model.",
+    "placeholder": "Type here or press the mic to dictate…",
+    "startRecording": "Start dictation",
+    "stopRecording": "Stop dictation",
+    "recording": "Recording…",
+    "transcribing": "Transcribing…",
+    "noModel": "No transcription model selected",
+    "noModelDescription": "Choose or download a model in the Models tab, or use the device's built-in speech recognition — no download needed.",
+    "useOnDevice": "Use device speech recognition",
+    "micError": "Couldn't start recording: {{error}}",
+    "empty": "No speech detected.",
+    "copied": "Copied to clipboard",
+    "spellCheck": "Spell check",
+    "cancel": "Cancel"
   }
 }

@@ -13,8 +13,23 @@ import AccessibilityPermissions from "./components/AccessibilityPermissions";
 import SecureInputWarning from "./components/SecureInputWarning";
 import Footer from "./components/footer";
 import Onboarding, { AccessibilityOnboarding } from "./components/onboarding";
-import { Sidebar, SidebarSection, SECTIONS_CONFIG } from "./components/Sidebar";
+import {
+  Sidebar,
+  SidebarSection,
+  SECTIONS_CONFIG,
+  WINDOW_SECTIONS,
+  type WindowView,
+} from "./components/Sidebar";
+import { TopTabBar, type MainTab } from "./components/TopTabBar";
+import { PromptWorkbench } from "./components/prompt-workbench/PromptWorkbench";
+import { TranscribeFiles } from "./components/transcribe/TranscribeFiles";
 import { WhatsNewGate } from "./components/whats-new";
+import { PromptPalette } from "./components/prompt-library/PromptPalette";
+import { PromptLibraryView } from "./components/prompt-library/PromptLibraryView";
+import { HistoryTimeline } from "./components/history/HistoryTimeline";
+import { MainSidebar, type MainNavId } from "./components/layout/MainSidebar";
+import { Home } from "./components/settings";
+import { ScreenshotsPage } from "./components/screenshots/ScreenshotsPage";
 import { useSettings } from "./hooks/useSettings";
 import { useSettingsStore } from "./stores/settingsStore";
 import { commands } from "@/bindings";
@@ -22,23 +37,106 @@ import { getLanguageDirection, initializeRTL } from "@/lib/utils/rtl";
 
 type OnboardingStep = "accessibility" | "model" | "done";
 
-const renderSettingsContent = (section: SidebarSection) => {
+/**
+ * Auxiliary window views are selected via the `?view=` query parameter baked
+ * into the window URL by the `open_app_window` command. No param = main
+ * window, which uses the top tab bar instead of a sidebar.
+ */
+const getWindowView = (): WindowView | null => {
+  const view = new URLSearchParams(window.location.search).get("view");
+  return view === "settings" || view === "studio" ? view : null;
+};
+
+const isScreenshotsView = (): boolean => {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("view") === "screenshots" || params.get("screenshots") === "1";
+};
+
+const renderSettingsContent = (
+  section: SidebarSection,
+  onNavigate: (section: SidebarSection) => void,
+) => {
   const ActiveComponent =
     SECTIONS_CONFIG[section]?.component || SECTIONS_CONFIG.general.component;
-  return <ActiveComponent />;
+  return <ActiveComponent onNavigate={onNavigate} />;
 };
 
 function App() {
   const { t, i18n } = useTranslation();
+  // Fixed for the lifetime of the window — the view comes from the URL.
+  const [windowView] = useState<WindowView | null>(getWindowView);
+  const isMainWindow = windowView === null;
   const [onboardingStep, setOnboardingStep] = useState<OnboardingStep | null>(
-    null,
+    isMainWindow ? null : "done",
   );
   // Track if this is a returning user who just needs to grant permissions
   // (vs a new user who needs full onboarding including model selection)
   const [isReturningUser, setIsReturningUser] = useState(false);
-  const [currentSection, setCurrentSection] =
-    useState<SidebarSection>("general");
+  const [currentSection, setCurrentSection] = useState<SidebarSection>(
+    windowView === "studio" ? "prompt-library" : "general",
+  );
+  const getInitialTab = (): MainTab => {
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get("tab") as MainTab | null;
+    if (tabParam && ["dictate", "prompt", "transcribe"].includes(tabParam)) return tabParam;
+    try {
+      const stored = localStorage.getItem("handy.activeTab") as MainTab | null;
+      if (stored && ["dictate", "prompt", "transcribe"].includes(stored)) return stored;
+    } catch {
+      // ignore
+    }
+    return "dictate";
+  };
+  const [activeTab, setActiveTab] = useState<MainTab>(() => getInitialTab());
+  const getInitialMainNav = (): MainNavId => {
+    const params = new URLSearchParams(window.location.search);
+    const nav = params.get("nav") as MainNavId | null;
+    if (nav && ["dictate", "prompt", "library", "history", "transcribe", "settings"].includes(nav)) return nav;
+    try {
+      const stored = localStorage.getItem("handy.mainNav") as MainNavId | null;
+      if (stored && ["dictate", "prompt", "library", "history", "transcribe", "settings"].includes(stored)) return stored;
+    } catch {}
+    // migrate from activeTab
+    if (activeTab === "dictate") return "dictate";
+    if (activeTab === "prompt") return "prompt";
+    if (activeTab === "transcribe") return "transcribe";
+    return "dictate";
+  };
+  const [mainNav, setMainNav] = useState<MainNavId>(() => getInitialMainNav());
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try { return localStorage.getItem("handy.sidebarCollapsed") === "1"; } catch { return false; }
+  });
   const { settings, updateSetting } = useSettings();
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("handy.activeTab", activeTab);
+    } catch {
+      // ignore
+    }
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", activeTab);
+      window.history.replaceState(null, "", url.toString());
+    } catch {
+      // ignore
+    }
+  }, [activeTab]);
+  useEffect(() => {
+    try { localStorage.setItem("handy.mainNav", mainNav); } catch {}
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("nav", mainNav);
+      window.history.replaceState(null, "", url.toString());
+    } catch {}
+    // keep activeTab in sync so TopTabBar highlight stays sane on legacy ?tab links
+    if (mainNav === "dictate") setActiveTab("dictate");
+    else if (mainNav === "prompt") setActiveTab("prompt");
+    else if (mainNav === "transcribe") setActiveTab("transcribe");
+  }, [mainNav]);
+  useEffect(() => {
+    try { localStorage.setItem("handy.sidebarCollapsed", sidebarCollapsed ? "1" : "0"); } catch {}
+  }, [sidebarCollapsed]);
   const direction = getLanguageDirection(i18n.language);
   const refreshAudioDevices = useSettingsStore(
     (state) => state.refreshAudioDevices,
@@ -48,18 +146,28 @@ function App() {
   );
   const hasCompletedPostOnboardingInit = useRef(false);
 
+  // Onboarding status only matters in the main window; settings/studio
+  // windows opened before onboarding completes render their content directly.
   useEffect(() => {
-    checkOnboardingStatus();
-  }, []);
+    if (isMainWindow) {
+      checkOnboardingStatus();
+    }
+  }, [isMainWindow]);
 
   // Initialize RTL direction when language changes
   useEffect(() => {
     initializeRTL(i18n.language);
   }, [i18n.language]);
 
-  // Initialize Enigo, shortcuts, and refresh audio devices when main app loads
+  // Initialize Enigo, shortcuts, and refresh audio devices when the main
+  // window app shell loads (main window only — secondary windows don't own
+  // global initialization).
   useEffect(() => {
-    if (onboardingStep === "done" && !hasCompletedPostOnboardingInit.current) {
+    if (
+      isMainWindow &&
+      onboardingStep === "done" &&
+      !hasCompletedPostOnboardingInit.current
+    ) {
       hasCompletedPostOnboardingInit.current = true;
       Promise.all([
         commands.initializeEnigo(),
@@ -70,10 +178,16 @@ function App() {
       refreshAudioDevices();
       refreshOutputDevices();
     }
-  }, [onboardingStep, refreshAudioDevices, refreshOutputDevices]);
+  }, [
+    isMainWindow,
+    onboardingStep,
+    refreshAudioDevices,
+    refreshOutputDevices,
+  ]);
 
-  // Handle keyboard shortcuts for debug mode toggle
+  // Handle keyboard shortcuts for debug mode toggle (main window only)
   useEffect(() => {
+    if (!isMainWindow) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       // Check for Ctrl+Shift+D (Windows/Linux) or Cmd+Shift+D (macOS)
       const isDebugShortcut =
@@ -95,7 +209,7 @@ function App() {
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [settings?.debug_mode, updateSetting]);
+  }, [isMainWindow, settings?.debug_mode, updateSetting]);
 
   // Listen for recording errors from the backend and show a toast
   useEffect(() => {
@@ -180,6 +294,30 @@ function App() {
     }
   };
 
+  // Prompt library/history now live inside the Prompt Studio persona (activeTab="prompt").
+  // In the main window, navigating to those sections switches the persona tab instead
+  // of opening a separate OS window. The studio window is kept for backward
+  // compatibility but all new flows should use the in-window persona.
+  const handleMainWindowNavigate = (section: SidebarSection) => {
+    if (section === "prompt-library") { setMainNav("library"); return; }
+    if (section === "prompt-history") { setMainNav("history"); return; }
+    if (section === "transcribe") { setMainNav("transcribe"); return; }
+    if (section === "home") { setMainNav("dictate"); return; }
+    commands.openAppWindow("settings").catch((e) => {
+      console.warn("Failed to open settings window:", e);
+    });
+  };
+
+  const handleMainNavChange = (nav: MainNavId) => {
+    if (nav === "settings") {
+      commands.openAppWindow("settings").catch((e) => console.warn("Failed to open settings window:", e));
+      return;
+    }
+    setMainNav(nav);
+  };
+
+  const openSettingsWindow = () => handleMainWindowNavigate("general");
+
   const checkOnboardingStatus = async () => {
     try {
       const settingsResult = await commands.getAppSettings();
@@ -194,10 +332,22 @@ function App() {
 
         if (currentPlatform === "macos") {
           try {
-            const [hasAccessibility, hasMicrophone] = await Promise.all([
+            let [hasAccessibility, hasMicrophone] = await Promise.all([
               checkAccessibilityPermission(),
               checkMicrophonePermission(),
             ]);
+            // Fallback: `AXIsProcessTrusted()` can return false after a reinstall
+            // with the same bundle ID until restart / re-trust, even though the
+            // app is already ticked in System Settings. Enigo init is ground truth
+            // — if it succeeds, we are trusted regardless of the plugin check.
+            if (!hasAccessibility) {
+              try {
+                const res = await commands.initializeEnigo();
+                if (res.status === "ok") hasAccessibility = true;
+              } catch {
+                // keep original value
+              }
+            }
             if (!hasAccessibility || !hasMicrophone) {
               await revealMainWindowForPermissions();
               setOnboardingStep("accessibility");
@@ -250,14 +400,18 @@ function App() {
     setOnboardingStep("done");
   };
 
+  const [screenshotsView] = useState<boolean>(() => isScreenshotsView());
+
   // Rendered once around every step below (including onboarding) so
   // toast.error() calls surface to the user. sonner renders via a portal, so
   // its position in the tree doesn't affect layout. Without this, errors during
   // onboarding (e.g. a model download failing because blob.handy.computer is
   // unreachable) are silently swallowed and the wizard just appears to "blink".
+  // The theme follows the applied theme setting (App re-renders on settings
+  // change); `system` lets sonner follow the OS like the rest of the UI.
   const toaster = (
     <Toaster
-      theme="system"
+      theme={settings?.theme ?? "system"}
       toastOptions={{
         unstyled: true,
         classNames: {
@@ -272,7 +426,19 @@ function App() {
     />
   );
 
-  // Still checking onboarding status
+  // Screenshots gallery bypasses onboarding (dev-only, no Tauri required).
+  // Reachable via `?view=screenshots` or `?screenshots=1`. Documented URL:
+  // http://localhost:5173/?view=screenshots
+  if (screenshotsView) {
+    return (
+      <>
+        {toaster}
+        <ScreenshotsPage />
+      </>
+    );
+  }
+
+  // Still checking onboarding status (main window only)
   if (onboardingStep === null) {
     return null;
   }
@@ -287,26 +453,64 @@ function App() {
     );
   } else if (onboardingStep === "model") {
     content = <Onboarding onModelSelected={handleModelSelected} />;
+  } else if (isMainWindow) {
+    content = (
+      <div dir={direction} className="h-screen flex flex-col select-none cursor-default">
+        <WhatsNewGate />
+        <TopTabBar activeTab={activeTab} onTabChange={setActiveTab} onOpenSettings={openSettingsWindow} />
+        <div className="flex-1 flex min-h-0 overflow-hidden">
+          <MainSidebar
+            active={mainNav}
+            onChange={handleMainNavChange}
+            collapsed={sidebarCollapsed}
+            onToggleCollapsed={() => setSidebarCollapsed((v) => !v)}
+          />
+          <div className="flex-1 overflow-y-auto">
+            <div className="flex flex-col items-center p-4 gap-4">
+              <AccessibilityPermissions />
+              <SecureInputWarning />
+              {mainNav === "dictate" && <Home showTitle={false} onNavigate={handleMainWindowNavigate} />}
+              {mainNav === "prompt" && <PromptWorkbench />}
+              {mainNav === "library" && (
+                <PromptLibraryView />
+              )}
+              {mainNav === "history" && (
+                <HistoryTimeline onNavigate={handleMainWindowNavigate} />
+              )}
+              {mainNav === "transcribe" && <TranscribeFiles />}
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
   } else {
+    // Settings / prompt studio auxiliary windows: sidebar layout restricted to
+    // their own sections.
+    const sidebarSections = windowView
+      ? WINDOW_SECTIONS[windowView]
+      : undefined;
+    const fallbackSection = sidebarSections?.[0] ?? "general";
+    const activeSection = sidebarSections?.includes(currentSection)
+      ? currentSection
+      : fallbackSection;
     content = (
       <div
         dir={direction}
         className="h-screen flex flex-col select-none cursor-default"
       >
-        <WhatsNewGate />
         {/* Main content area that takes remaining space */}
         <div className="flex-1 flex overflow-hidden">
           <Sidebar
-            activeSection={currentSection}
+            activeSection={activeSection}
             onSectionChange={setCurrentSection}
+            sections={sidebarSections}
           />
           {/* Scrollable content area */}
           <div className="flex-1 flex flex-col overflow-hidden">
             <div className="flex-1 overflow-y-auto">
               <div className="flex flex-col items-center p-4 gap-4">
-                <AccessibilityPermissions />
-                <SecureInputWarning />
-                {renderSettingsContent(currentSection)}
+                {renderSettingsContent(currentSection, setCurrentSection)}
               </div>
             </div>
           </div>
@@ -321,6 +525,7 @@ function App() {
     <>
       {toaster}
       {content}
+      <PromptPalette />
     </>
   );
 }

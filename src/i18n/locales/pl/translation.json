@@ -11,12 +11,14 @@
   },
   "sidebar": {
     "general": "Ogólne",
+    "appearance": "Wygląd",
     "models": "Modele",
     "advanced": "Zaawansowane",
     "postProcessing": "Postproces",
     "history": "Historia",
     "debug": "Debugowanie",
-    "about": "O programie"
+    "about": "O programie",
+    "transcribe": "Transcribe"
   },
   "onboarding": {
     "subtitle": "Aby rozpocząć, wybierz model transkrypcji",
@@ -152,7 +154,13 @@
     },
     "cancel": "Anuluj",
     "cancelDownload": "Anuluj pobieranie",
-    "legacy": "Przestarzałe"
+    "loaded": "Załadowano",
+    "loadedCount": "{{count}} załadowane",
+    "unload": "Zwolnij",
+    "unloadTooltip": "Zwolnij model z pamięci",
+    "builtIn": "Wbudowany",
+    "legacy": "Przestarzałe",
+    "loadedModels": "Loaded models"
   },
   "settings": {
     "modelSettings": {
@@ -168,6 +176,16 @@
         "allLanguages": "Wszystkie języki"
       },
       "noModelsMatch": "Żadne modele nie pasują do tego filtra.",
+      "loadedHint": "Kliknij, aby przełączyć natychmiast",
+      "multiModel": {
+        "title": "Ładuj wiele modeli naraz",
+        "description": "Trzymaj kilka modeli w pamięci, aby przełączać się natychmiast i porównywać transkrypcje. Zużywa więcej RAM."
+      },
+      "osSpeech": {
+        "authRequired": "Wymagana zgoda na korzystanie z rozpoznawania mowy urządzenia",
+        "grantPermission": "Udziel zgody",
+        "retry": "Ponów"
+      },
       "yourModels": "Pobrane modele",
       "availableModels": "Dostępne do pobrania",
       "searchPlaceholder": "Szukaj modeli według nazwy…",
@@ -368,6 +386,35 @@
       "voiceActivityDetection": {
         "title": "Wykrywanie aktywności głosowej",
         "description": "Odfiltrowuje ciszę z nagrań. Modele obsługujące streaming używają dłuższego marginesu VAD; wyłączenie VAD nagrywa surowy dźwięk."
+      },
+      "customWordDatasets": {
+        "title": "Word Datasets",
+        "description": "Term lists that improve recognition of names and specialized terms. Toggle a dataset on to feed its terms to the model; every transcription is also fuzzy-corrected against enabled terms.",
+        "activeWords_one": "{{count}} word active",
+        "activeWords_other": "{{count}} words active",
+        "builtinBadge": "Built-in",
+        "words_one": "{{count}} word",
+        "words_other": "{{count}} words",
+        "expanded": "Show words",
+        "collapsed": "Hide words",
+        "toggle": "Toggle dataset",
+        "readOnlyHint": "Built-in datasets are read-only. Toggle them on or off.",
+        "addWordPlaceholder": "Add a term",
+        "add": "Add",
+        "removeWord": "Remove {{word}}",
+        "duplicateWord": "\"{{word}}\" already exists in this dataset",
+        "newDatasetPlaceholder": "Dataset name",
+        "create": "Create",
+        "deleteDataset": "Delete dataset",
+        "deleteConfirm": "Delete \"{{name}}\"? This cannot be undone.",
+        "rename": "Rename",
+        "importButton": "Import .txt",
+        "importSuccess": "Imported \"{{name}}\" with {{count}} words",
+        "importFailed": "Import failed: {{error}}",
+        "export": "Export",
+        "exportSuccess": "Exported \"{{name}}\"",
+        "exportFailed": "Export failed: {{error}}",
+        "emptyList": "No datasets yet. Create your own or import a .txt file with one term per line."
       }
     },
     "postProcessing": {
@@ -561,6 +608,22 @@
         "error": "Nie udało się wyświetlić podglądu informacji o wydaniu"
       }
     },
+    "appearance": {
+      "title": "Wygląd",
+      "description": "Dostosuj wygląd aplikacji Handy",
+      "accent": {
+        "title": "Kolor akcentu",
+        "description": "Wybierz kolor podświetlenia używany w całej aplikacji",
+        "options": {
+          "pink": "Różowy",
+          "orange": "Pomarańczowy",
+          "purple": "Fioletowy",
+          "green": "Zielony",
+          "blue": "Niebieski",
+          "red": "Czerwony"
+        }
+      }
+    },
     "about": {
       "title": "O programie",
       "version": {
@@ -608,7 +671,13 @@
     "portableUpdateMessage": "Instalacji przenośnych nie można aktualizować automatycznie. Pobierz poniżej instalator dla swojego systemu, uruchom go i zainstaluj w tym samym folderze — Twój folder Data/ (ustawienia, modele, nagrania) pozostaje na miejscu.",
     "portableUpdateButton": "Pobierz instalator",
     "portableUpdateBrowseMessage": "Instalacji przenośnych nie można aktualizować automatycznie. Pobierz najnowszą wersję dla swojego systemu z GitHub Releases i zainstaluj ją w tym samym folderze — Twój folder Data/ (ustawienia, modele, nagrania) pozostaje na miejscu.",
-    "portableUpdateBrowseButton": "Otwórz GitHub Releases"
+    "portableUpdateBrowseButton": "Otwórz GitHub Releases",
+    "harper": {
+      "label": "Spell check",
+      "ready": "Grammar & spelling engine ready",
+      "initializing": "Initializing grammar & spelling engine…",
+      "disabled": "Spell check disabled"
+    }
   },
   "common": {
     "loading": "Wczytywanie...",
@@ -671,5 +740,22 @@
     "learnMore": "Jak to naprawić",
     "recorderBlocked": "Nie można teraz nagrać skrótu — Secure Input w macOS blokuje zdarzenia klawiszy. Najpierw rozwiąż ostrzeżenie o Secure Input.",
     "dismiss": "Odrzuć"
+  },
+  "dictation": {
+    "title": "Transcribe",
+    "description": "Type a prompt or dictate with the active speech-to-text model.",
+    "placeholder": "Type here or press the mic to dictate…",
+    "startRecording": "Start dictation",
+    "stopRecording": "Stop dictation",
+    "recording": "Recording…",
+    "transcribing": "Transcribing…",
+    "noModel": "No transcription model selected",
+    "noModelDescription": "Choose or download a model in the Models tab, or use the device's built-in speech recognition — no download needed.",
+    "useOnDevice": "Use device speech recognition",
+    "micError": "Couldn't start recording: {{error}}",
+    "empty": "No speech detected.",
+    "copied": "Copied to clipboard",
+    "spellCheck": "Spell check",
+    "cancel": "Cancel"
   }
 }

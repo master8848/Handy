@@ -1,16 +1,34 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ask } from "@tauri-apps/plugin-dialog";
-import { ChevronDown, Globe, RefreshCw, Search } from "lucide-react";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import {
+  ChevronDown,
+  ExternalLink,
+  Globe,
+  Loader2,
+  RefreshCw,
+  Search,
+} from "lucide-react";
 import type { ModelCardStatus } from "@/components/onboarding";
 import { ModelCard } from "@/components/onboarding";
 import { useModelStore } from "@/stores/modelStore";
+import { useSettings } from "@/hooks/useSettings";
+import { commands } from "@/bindings";
+import { ToggleSwitch } from "@/components/ui/ToggleSwitch";
+import { Button } from "@/components/ui/Button";
 import {
   getLanguageLabel,
   MODEL_CAPABILITY_LANGUAGES,
   supportsLanguageCode,
 } from "@/lib/constants/languages.ts";
 import type { ModelInfo } from "@/bindings";
+
+// Apple guides for the macOS permissions the OS speech model needs.
+const SPEECH_RECOGNITION_HELP_URL =
+  "https://support.apple.com/guide/mac-help/control-access-to-speech-recognition-on-mac-mchl48fbbd25/mac";
+const MICROPHONE_HELP_URL =
+  "https://support.apple.com/guide/mac-help/control-access-to-your-microphone-on-mac-mchlp6d0b7e2/mac";
 
 // check if model supports a language based on its supported_languages list
 const modelSupportsLanguage = (model: ModelInfo, langCode: string): boolean => {
@@ -25,16 +43,21 @@ const isLegacyModel = (model: ModelInfo): boolean =>
 
 export const ModelsSettings: React.FC = () => {
   const { t } = useTranslation();
+  const { getSetting, updateSetting, isUpdating } = useSettings();
   const [switchingModelId, setSwitchingModelId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [languageFilter, setLanguageFilter] = useState("all");
   const [languageDropdownOpen, setLanguageDropdownOpen] = useState(false);
   const [languageSearch, setLanguageSearch] = useState("");
+  const [osAuthError, setOsAuthError] = useState(false);
+  const [grantingPermission, setGrantingPermission] = useState(false);
+  const [permissionRequested, setPermissionRequested] = useState(false);
   const languageDropdownRef = useRef<HTMLDivElement>(null);
   const languageSearchInputRef = useRef<HTMLInputElement>(null);
   const {
     models,
     currentModel,
+    loadedModels,
     downloadingModels,
     downloadProgress,
     downloadStats,
@@ -46,6 +69,7 @@ export const ModelsSettings: React.FC = () => {
     cancelDownload,
     selectModel,
     deleteModel,
+    unloadModel,
     rescanLocalModels,
   } = useModelStore();
 
@@ -99,6 +123,9 @@ export const ModelsSettings: React.FC = () => {
     if (switchingModelId === modelId) {
       return "switching";
     }
+    if (loadedModels.includes(modelId) && modelId !== currentModel) {
+      return "loaded";
+    }
     if (modelId === currentModel) {
       return "active";
     }
@@ -122,9 +149,51 @@ export const ModelsSettings: React.FC = () => {
   const handleModelSelect = async (modelId: string) => {
     setSwitchingModelId(modelId);
     try {
-      await selectModel(modelId);
+      const success = await selectModel(modelId);
+      // macOS: loading os-speech fails until speech recognition permission is
+      // granted. The backend marks this with a stable "[os_speech_auth_required]"
+      // prefix (older builds used the English "authorization required" wording).
+      if (!success && modelId === "os-speech") {
+        const storeError = useModelStore.getState().error ?? "";
+        if (
+          storeError.includes("[os_speech_auth_required]") ||
+          storeError.includes("authorization required")
+        ) {
+          setOsAuthError(true);
+        }
+      }
     } finally {
       setSwitchingModelId(null);
+    }
+  };
+
+  const handleModelUnload = async (modelId: string) => {
+    try {
+      await unloadModel(modelId);
+    } catch (err) {
+      console.error(`Failed to unload model ${modelId}:`, err);
+    }
+  };
+
+  const handleOpenSpeechSettings = async () => {
+    try {
+      await commands.openSpeechRecognitionSettings();
+    } catch (err) {
+      console.error("Failed to open speech recognition settings:", err);
+    }
+  };
+
+  const handleGrantPermission = async () => {
+    setGrantingPermission(true);
+    try {
+      await commands.osSpeechRequestAuthorization();
+      setPermissionRequested(true);
+      setOsAuthError(false);
+      await handleModelSelect("os-speech");
+    } catch (err) {
+      console.error("Failed to request OS speech authorization:", err);
+    } finally {
+      setGrantingPermission(false);
     }
   };
 
@@ -134,6 +203,10 @@ export const ModelsSettings: React.FC = () => {
 
   const handleModelDelete = async (modelId: string) => {
     const model = models.find((m: ModelInfo) => m.id === modelId);
+    // The OS speech engine is a virtual model — nothing to delete.
+    if (model?.engine_type === "OsSpeech" || modelId === "os-speech") {
+      return;
+    }
     const modelName = model?.name || modelId;
     const isActive = modelId === currentModel;
 
@@ -199,10 +272,14 @@ export const ModelsSettings: React.FC = () => {
       }
     }
 
-    // Sort: active model first, then non-custom, then custom at the bottom
+    // Sort: active model first, then loaded (in-memory) models, then
+    // non-custom, then custom at the bottom
     downloaded.sort((a, b) => {
       if (a.id === currentModel) return -1;
       if (b.id === currentModel) return 1;
+      const aLoaded = loadedModels.includes(a.id);
+      const bLoaded = loadedModels.includes(b.id);
+      if (aLoaded !== bLoaded) return aLoaded ? -1 : 1;
       if (a.is_custom !== b.is_custom) return a.is_custom ? 1 : -1;
       return 0;
     });
@@ -211,7 +288,13 @@ export const ModelsSettings: React.FC = () => {
       downloadedModels: downloaded,
       availableModels: available,
     };
-  }, [filteredModels, downloadingModels, extractingModels, currentModel]);
+  }, [
+    filteredModels,
+    downloadingModels,
+    extractingModels,
+    currentModel,
+    loadedModels,
+  ]);
 
   if (loading) {
     return (
@@ -234,6 +317,18 @@ export const ModelsSettings: React.FC = () => {
         </p>
       </div>
 
+      {/* Multi-model loading toggle — keep several models in memory at once */}
+      <div className="bg-background border border-mid-gray/20 rounded-lg overflow-visible">
+        <ToggleSwitch
+          checked={getSetting("multi_model_loading") || false}
+          onChange={(enabled) => updateSetting("multi_model_loading", enabled)}
+          isUpdating={isUpdating("multi_model_loading")}
+          label={t("settings.models.multiModel.title")}
+          description={t("settings.models.multiModel.description")}
+          descriptionMode="inline"
+        />
+      </div>
+
       {/* Search bar — filter the catalog by name or description */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text/40 pointer-events-none" />
@@ -245,6 +340,58 @@ export const ModelsSettings: React.FC = () => {
           className="w-full pl-9 pr-3 py-2 text-sm bg-mid-gray/10 border border-mid-gray/40 rounded-lg focus:outline-none focus:ring-1 focus:ring-logo-primary placeholder:text-text/40"
         />
       </div>
+
+      {/* macOS speech recognition permission banner (os-speech model) */}
+      {osAuthError && (
+        <div className="flex flex-col gap-2 p-3 rounded-lg border border-warning/40 bg-warning/10">
+          <p className="text-sm text-text/80">
+            {t("settings.models.osSpeech.authRequired")}
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleOpenSpeechSettings}
+              className="shrink-0"
+            >
+              {t("settings.models.osSpeech.openSystemSettings")}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={grantingPermission}
+              onClick={handleGrantPermission}
+              className="shrink-0"
+            >
+              {grantingPermission ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                t(
+                  permissionRequested
+                    ? "settings.models.osSpeech.retry"
+                    : "settings.models.osSpeech.grantPermission",
+                )
+              )}
+            </Button>
+            <button
+              type="button"
+              onClick={() => openUrl(SPEECH_RECOGNITION_HELP_URL)}
+              className="flex items-center gap-1 text-xs text-logo-primary hover:underline"
+            >
+              <ExternalLink className="w-3 h-3" />
+              {t("settings.models.osSpeech.learnMoreSpeech")}
+            </button>
+            <button
+              type="button"
+              onClick={() => openUrl(MICROPHONE_HELP_URL)}
+              className="flex items-center gap-1 text-xs text-logo-primary hover:underline"
+            >
+              <ExternalLink className="w-3 h-3" />
+              {t("settings.models.osSpeech.learnMoreMic")}
+            </button>
+          </div>
+        </div>
+      )}
 
       {filteredModels.length > 0 ? (
         <div className="space-y-6">
@@ -372,6 +519,7 @@ export const ModelsSettings: React.FC = () => {
                 onSelect={handleModelSelect}
                 onDownload={handleModelDownload}
                 onDelete={handleModelDelete}
+                onUnload={handleModelUnload}
                 onCancel={handleModelCancel}
                 downloadProgress={getDownloadProgress(model.id)}
                 downloadSpeed={getDownloadSpeed(model.id)}
@@ -394,6 +542,7 @@ export const ModelsSettings: React.FC = () => {
                   onSelect={handleModelSelect}
                   onDownload={handleModelDownload}
                   onDelete={handleModelDelete}
+                  onUnload={handleModelUnload}
                   onCancel={handleModelCancel}
                   downloadProgress={getDownloadProgress(model.id)}
                   downloadSpeed={getDownloadSpeed(model.id)}

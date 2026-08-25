@@ -1,0 +1,204 @@
+# source: https://en.wikipedia.org/wiki/Glossary_of_biology https://en.wikipedia.org/wiki/Glossary_of_chemistry_terms https://en.wikipedia.org/wiki/Glossary_of_physics https://en.wikipedia.org/wiki/Glossary_of_genetics_and_evolutionary_biology
+
+abiogenesis
+adiabatic
+aerodynamics
+allele
+allele frequency
+allopatric
+allotrope
+alpha particle
+amino acid
+amphipathic
+anaerobic
+aneuploidy
+anhydrous
+antibiotic
+antibody
+antiparticle
+archaea
+artificial selection
+astrobiology
+astrophysics
+ATP
+autotroph
+Avogadro constant
+bacteriophage
+beta decay
+beta particle
+Big Bang
+binding energy
+biodiversity
+bioenergetics
+bioinformatics
+biophysics
+biosynthesis
+biotechnology
+Brownian motion
+Calvin cycle
+carbohydrate
+carbon fixation
+carotenoid
+catalase
+catalyst
+centrifugation
+chemotaxis
+chirality
+chlorophyll
+chloroplast
+chromatography
+chromosome
+circadian rhythm
+citric acid cycle
+classical mechanics
+coevolution
+convergent evolution
+covalent bond
+crystallography
+cytoplasm
+dark energy
+dark matter
+denaturation
+deoxyribonucleic acid
+depolarization
+desmosome
+deuterium
+directional selection
+divergent evolution
+DNA
+DNA replication
+DNA sequencing
+Doppler effect
+electrochemistry
+electrolyte
+electromagnetic radiation
+electromagnetic spectrum
+electromagnetism
+electron
+electronegativity
+electronvolt
+empirical formula
+enantiomer
+endoplasmic reticulum
+enthalpy
+entropy
+enzyme
+epidemiology
+epigenetics
+escape velocity
+eukaryote
+eukaryotic
+fermentation
+founder effect
+fractional distillation
+galvanic cell
+gas chromatography
+gene expression
+gene flow
+gene pool
+genetic code
+genetic counseling
+genetic disorder
+genetic diversity
+genetic drift
+genetic testing
+genome
+genomics
+genotype
+gravitational wave
+half-life
+haplotype
+heritability
+heterotroph
+heterozygous
+Higgs boson
+homeostasis
+homologous chromosomes
+homozygous
+hybridization
+hydrocarbon
+hydrogen bond
+hydrolysis
+immunoglobulin
+incomplete dominance
+isomer
+isotope
+kinematics
+Krebs cycle
+lipid
+lipoprotein
+macromolecule
+macrophage
+magnetoreception
+mass spectrometry
+meiosis
+Mendelian inheritance
+microevolution
+missense mutation
+mitochondria
+mitosis
+molecular genetics
+mosaicism
+natural selection
+neutrino
+neutron
+nitrogen fixation
+nondisjunction
+nonsense mutation
+nucleic acid
+nucleolus
+nucleotide
+osmosis
+paleontology
+parthenogenesis
+particle accelerator
+phenotype
+pheromone
+phloem
+photoelectric effect
+photon
+photosynthesis
+phylogenetics
+physical chemistry
+piezoelectricity
+Planck constant
+pleiotropy
+polygenic trait
+polymer
+polymerase chain reaction
+polymorphism
+polyploidy
+population genetics
+prokaryote
+pseudogene
+quantum
+quantum chromodynamics
+quantum electrodynamics
+quantum field theory
+quantum mechanics
+quantum number
+radioactive decay
+radionuclide
+ribosome
+RNA
+RNA polymerase
+sclerenchyma
+simple harmonic motion
+speciation
+Standard Model
+statistical mechanics
+stereochemistry
+stoichiometry
+string theory
+subatomic particle
+superconductivity
+symbiosis
+testosterone
+thermodynamics
+transcription
+Tyndall effect
+uncertainty principle
+vasodilation
+wave-particle duality
+wavelength
+zwitterion

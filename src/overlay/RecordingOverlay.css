@@ -223,6 +223,17 @@
 .stext-cap .tentative {
   color: inherit;
 }
+/* Spelling/grammar issues on committed text: a theme-aware translucent red wavy
+   line (--color-error flips light/dark), offset below the text. */
+.stext-cap .spell-issue {
+  text-decoration: underline wavy;
+  text-decoration-color: color-mix(
+    in srgb,
+    var(--color-error) 70%,
+    transparent
+  );
+  text-underline-offset: 3px;
+}
 .scaret {
   display: inline-block;
   width: 2px;

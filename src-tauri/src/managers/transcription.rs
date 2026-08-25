@@ -9,7 +9,9 @@ use anyhow::Result;
 use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
 use specta::Type;
+use std::collections::HashMap;
 use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{mpsc, Arc, Condvar, Mutex, MutexGuard, OnceLock};
 use std::thread;
@@ -178,6 +180,9 @@ enum LoadedEngine {
     GigaAM(GigaAMModel),
     Canary(CanaryModel),
     Cohere(CohereModel),
+    /// OS-provided speech recognition (SFSpeechRecognizer on macOS, SAPI on
+    /// Windows). Unit variant: no weights, nothing to hold in memory.
+    OsSpeech,
 }
 
 /// RAII guard that clears the `is_loading` flag and notifies waiters on drop.
@@ -236,7 +241,12 @@ impl Drop for StreamWorkerGuard {
 
 #[derive(Clone)]
 pub struct TranscriptionManager {
-    engine: Arc<Mutex<Option<LoadedEngine>>>,
+    /// Loaded engines keyed by model id. With `multi_model_loading` enabled
+    /// several models stay resident at once; otherwise this holds at most one
+    /// entry at a time (old behavior). The engine for the active model may be
+    /// temporarily leased out (batch transcription / streaming worker) — see
+    /// `active_engine_lease`.
+    engines: Arc<Mutex<HashMap<String, LoadedEngine>>>,
     model_manager: Arc<ModelManager>,
     app_handle: AppHandle,
     current_model_id: Arc<Mutex<Option<String>>>,
@@ -272,7 +282,7 @@ pub struct TranscriptionManager {
 impl TranscriptionManager {
     pub fn new(app_handle: &AppHandle, model_manager: Arc<ModelManager>) -> Result<Self> {
         let manager = Self {
-            engine: Arc::new(Mutex::new(None)),
+            engines: Arc::new(Mutex::new(HashMap::new())),
             model_manager,
             app_handle: app_handle.clone(),
             current_model_id: Arc::new(Mutex::new(None)),
@@ -363,18 +373,30 @@ impl TranscriptionManager {
         Ok(manager)
     }
 
-    /// Lock the engine mutex, recovering from poison if a previous transcription panicked.
-    fn lock_engine(&self) -> MutexGuard<'_, Option<LoadedEngine>> {
-        self.engine.lock().unwrap_or_else(|poisoned| {
+    /// Lock the engines map, recovering from poison if a previous transcription panicked.
+    fn lock_engine(&self) -> MutexGuard<'_, HashMap<String, LoadedEngine>> {
+        self.engines.lock().unwrap_or_else(|poisoned| {
             warn!("Engine mutex was poisoned by a previous panic, recovering");
             poisoned.into_inner()
         })
     }
 
     pub fn is_model_loaded(&self) -> bool {
-        // The engine may be leased out to the streaming worker (taken out of
-        // the mutex). It's still loaded, just in use, so report true.
-        self.lock_engine().is_some() || self.active_engine_lease.load(Ordering::Acquire) != 0
+        // The active engine may be leased out to the streaming worker (taken
+        // out of the mutex). It's still loaded, just in use, so report true.
+        !self.lock_engine().is_empty() || self.active_engine_lease.load(Ordering::Acquire) != 0
+    }
+
+    /// Whether a specific model id has a resident engine (and is not leased out).
+    pub fn is_model_loaded_id(&self, id: &str) -> bool {
+        self.lock_engine().contains_key(id)
+    }
+
+    /// Ids of all models with a resident engine.
+    pub fn get_loaded_models(&self) -> Vec<String> {
+        let mut ids: Vec<String> = self.lock_engine().keys().cloned().collect();
+        ids.sort();
+        ids
     }
 
     /// Accelerator changes should not disturb the current transcription. Mark
@@ -400,14 +422,18 @@ impl TranscriptionManager {
         })
     }
 
+    pub fn is_loading_flag(&self) -> bool {
+        *self.is_loading.lock().unwrap()
+    }
+
     pub fn unload_model(&self) -> Result<()> {
         let unload_start = std::time::Instant::now();
         debug!("Starting to unload model");
 
         {
-            let mut engine = self.lock_engine();
-            // Dropping the engine frees all resources
-            *engine = None;
+            let mut engines = self.lock_engine();
+            // Dropping the engines frees all resources
+            engines.clear();
         }
         {
             let mut current_model = self.current_model_id.lock().unwrap();
@@ -430,6 +456,38 @@ impl TranscriptionManager {
             "Model unloaded manually (took {}ms)",
             unload_duration.as_millis()
         );
+        Ok(())
+    }
+
+    /// Unload just one model from the resident set (used when multi-model
+    /// loading is on). If it was the active model, the active id is cleared.
+    /// Succeeds even when the model is not currently loaded.
+    pub fn unload_model_by_id(&self, model_id: &str) -> Result<()> {
+        let was_active = {
+            let mut engines = self.lock_engine();
+            engines.remove(model_id)
+        };
+        if was_active.is_none() {
+            debug!("Model '{}' was not loaded; nothing to unload", model_id);
+        }
+        {
+            let mut current_model = self.current_model_id.lock().unwrap();
+            if current_model.as_deref() == Some(model_id) {
+                *current_model = None;
+            }
+        }
+
+        let _ = self.app_handle.emit(
+            "model-state-changed",
+            ModelStateEvent {
+                event_type: "unloaded".to_string(),
+                model_id: Some(model_id.to_string()),
+                model_name: None,
+                error: None,
+            },
+        );
+
+        debug!("Unloaded model: {}", model_id);
         Ok(())
     }
 
@@ -493,7 +551,40 @@ impl TranscriptionManager {
             .get_model_info(model_id)
             .ok_or_else(|| anyhow::anyhow!("Model not found: {}", model_id))?;
 
-        if !model_info.is_downloaded {
+        let settings = get_settings(&self.app_handle);
+        let multi_model = settings.multi_model_loading;
+
+        // Multi-model instant switch: the engine is already resident — just make
+        // it the active model. Skipped on a forced reload (accelerator change),
+        // which must rebuild the engine with the latest settings.
+        if multi_model
+            && !self.reload_model_on_next_use.load(Ordering::Acquire)
+            && self.is_model_loaded_id(model_id)
+        {
+            info!(
+                "Model '{}' already loaded; switching active model without rebuilding",
+                model_id
+            );
+            {
+                let mut current_model = self.current_model_id.lock().unwrap();
+                *current_model = Some(model_id.to_string());
+            }
+            self.touch_activity();
+            let _ = self.app_handle.emit(
+                "model-state-changed",
+                ModelStateEvent {
+                    event_type: "loading_completed".to_string(),
+                    model_id: Some(model_id.to_string()),
+                    model_name: Some(model_info.name.clone()),
+                    error: None,
+                },
+            );
+            return Ok(());
+        }
+
+        let is_os_speech = matches!(model_info.engine_type, EngineType::OsSpeech);
+
+        if !is_os_speech && !model_info.is_downloaded {
             let error_msg = "Model not downloaded";
             let _ = self.app_handle.emit(
                 "model-state-changed",
@@ -507,19 +598,29 @@ impl TranscriptionManager {
             return Err(anyhow::anyhow!(error_msg));
         }
 
-        let model_path = self.model_manager.get_model_path(model_id)?;
+        // OS speech models carry no weights, so they have no disk path; the
+        // OsSpeech arm below never reads `model_path`.
+        let model_path = if is_os_speech {
+            PathBuf::new()
+        } else {
+            self.model_manager.get_model_path(model_id)?
+        };
 
-        // Drop the current engine BEFORE building the new one so transcribe-cpp
+        // Drop the current engines BEFORE building the new one so transcribe-cpp
         // frees the previous native context first — avoids holding two models at
-        // once (peak memory on large GGUFs). Clear the id too: if the new load
-        // fails, status should read "no loaded model", not the dropped engine.
-        {
-            let mut engine = self.lock_engine();
-            *engine = None;
-        }
-        {
-            let mut current_model = self.current_model_id.lock().unwrap();
-            *current_model = None;
+        // once (peak memory on large GGUFs). Clear the active id too: if the new
+        // load fails, status should read "no active model", not the dropped
+        // engine. In multi-model mode, OTHER models stay resident; only the
+        // engine being replaced is dropped (it is overwritten on success).
+        if !multi_model {
+            {
+                let mut engines = self.lock_engine();
+                engines.clear();
+            }
+            {
+                let mut current_model = self.current_model_id.lock().unwrap();
+                *current_model = None;
+            }
         }
 
         // Create appropriate engine based on model type
@@ -669,12 +770,47 @@ impl TranscriptionManager {
                 })?;
                 LoadedEngine::Cohere(engine)
             }
+            EngineType::OsSpeech => {
+                #[cfg(target_os = "macos")]
+                {
+                    if !crate::os_speech::available() {
+                        let error_msg = "OS speech recognition is not available on this device";
+                        emit_loading_failed(error_msg);
+                        return Err(anyhow::anyhow!(error_msg));
+                    }
+                    if crate::os_speech::authorization_status() != "authorized" {
+                        // "[os_speech_auth_required]" is a stable machine-readable
+                        // marker the frontend matches on (do not translate/reword it).
+                        let error_msg = "[os_speech_auth_required] Speech Recognition access \
+                                         is off for Handy. Open System Settings \u{2192} Privacy \
+                                         & Security \u{2192} Speech Recognition and enable Handy.";
+                        emit_loading_failed(error_msg);
+                        return Err(anyhow::anyhow!(error_msg));
+                    }
+                }
+                #[cfg(target_os = "windows")]
+                {
+                    if !crate::os_speech_win::available() {
+                        let error_msg =
+                            "Windows speech recognition is not available on this device";
+                        emit_loading_failed(error_msg);
+                        return Err(anyhow::anyhow!(error_msg));
+                    }
+                }
+                #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+                {
+                    let error_msg = "OS speech recognition is not available on this platform";
+                    emit_loading_failed(error_msg);
+                    return Err(anyhow::anyhow!(error_msg));
+                }
+                LoadedEngine::OsSpeech
+            }
         };
 
-        // Update the current engine and model ID
+        // Update the engines map and active model ID
         {
-            let mut engine = self.lock_engine();
-            *engine = Some(loaded_engine);
+            let mut engines = self.lock_engine();
+            engines.insert(model_id.to_string(), loaded_engine);
         }
         {
             let mut current_model = self.current_model_id.lock().unwrap();
@@ -712,8 +848,11 @@ impl TranscriptionManager {
         }
 
         let reload_pending = self.reload_model_on_next_use.load(Ordering::Acquire);
-        if !reload_pending && self.is_model_loaded() {
-            return;
+        if !reload_pending {
+            let settings = get_settings(&self.app_handle);
+            if self.is_model_loaded_id(&settings.selected_model) {
+                return;
+            }
         }
 
         *is_loading = true;
@@ -742,13 +881,15 @@ impl TranscriptionManager {
     /// The compute backend the currently-loaded engine is bound to, for
     /// diagnostics (e.g. confirming `--device-index` actually bound a GPU rather
     /// than falling back to CPU/auto). transcribe-cpp (whisper-family) reports
-    /// its real backend string; ONNX engines report "onnx"; `None` when no
-    /// model is loaded.
+    /// its real backend string; ONNX engines report "onnx"; OS speech reports
+    /// "os-speech"; `None` when no model is loaded.
     pub fn current_backend(&self) -> Option<String> {
-        match self.lock_engine().as_ref() {
+        let current_model = self.current_model_id.lock().unwrap().clone()?;
+        match self.lock_engine().get(&current_model) {
             Some(LoadedEngine::TranscribeCpp(session)) => {
                 Some(session.model().backend().to_string())
             }
+            Some(LoadedEngine::OsSpeech) => Some("os-speech".to_string()),
             Some(_) => Some("onnx".to_string()),
             None => None,
         }
@@ -815,10 +956,11 @@ impl TranscriptionManager {
 
         let model_id = self.get_current_model().unwrap_or_default();
 
-        // Take the engine out of the mutex so we own it during streaming,
-        // structurally excluding any concurrent batch transcription (which
-        // transcribe-cpp's compute_lock would refuse anyway). Returned when the
-        // worker exits, or dropped if the model was switched/unloaded mid-stream.
+        // Take the engine for the active model out of the map so we own it
+        // during streaming, structurally excluding any concurrent batch
+        // transcription (which transcribe-cpp's compute_lock would refuse
+        // anyway). Returned when the worker exits, or dropped if the model was
+        // switched/unloaded mid-stream.
         if self
             .active_engine_lease
             .compare_exchange(0, worker_id, Ordering::AcqRel, Ordering::Acquire)
@@ -829,7 +971,7 @@ impl TranscriptionManager {
             drain_until_finalize(rx);
             return;
         }
-        let mut engine = match self.lock_engine().take() {
+        let mut engine = match self.lock_engine().remove(&model_id) {
             Some(e) => e,
             None => {
                 info!(
@@ -1032,13 +1174,23 @@ impl TranscriptionManager {
         // the engine has been returned to the pool.
     }
 
-    /// Return the leased engine to the mutex, unless the model was switched or
-    /// unloaded during transcription (in which case the stale engine is dropped).
+    /// Return the leased engine to the map, unless the model was switched or
+    /// unloaded during transcription (in which case the stale engine is
+    /// dropped). Also dropped if another engine was already loaded under the
+    /// same id while this one was leased out (multi-model reload race).
     fn return_engine(&self, engine: LoadedEngine, expected_model_id: &str) {
         let still_current =
             self.current_model_id.lock().unwrap().as_deref() == Some(expected_model_id);
-        if still_current {
-            *self.lock_engine() = Some(engine);
+        let mut engines = self.lock_engine();
+        if still_current && !engines.contains_key(expected_model_id) {
+            engines.insert(expected_model_id.to_string(), engine);
+        } else if still_current {
+            info!(
+                "A newer engine for '{}' was loaded while transcription was in progress; \
+                 dropping the stale engine",
+                expected_model_id
+            );
+            // `engine` drops here, freeing its resources.
         } else {
             info!(
                 "Model changed/unloaded during transcription; dropping stale engine (was '{}')",
@@ -1078,7 +1230,7 @@ impl TranscriptionManager {
         let settings = get_settings(&self.app_handle);
         // Streaming models do not receive a decode prompt, so custom words
         // always go through the shared fuzzy post-correction path.
-        let filtered = post_process_transcription_text(raw, &settings, false);
+        let filtered = post_process_transcription_text(raw, &settings);
 
         self.maybe_unload_immediately("streaming transcription");
         Ok(Some(filtered))
@@ -1109,7 +1261,14 @@ impl TranscriptionManager {
         .emit(&self.app_handle);
     }
 
-    pub fn transcribe(&self, audio: Vec<f32>) -> Result<String> {
+    /// Transcribe audio with the active model. `wav_path` is the on-disk
+    /// recording (when available); the Windows OS speech backend requires it
+    /// because it transcribes from the file (macOS consumes raw PCM directly).
+    pub fn transcribe_with_wav_path(
+        &self,
+        audio: Vec<f32>,
+        wav_path: Option<&Path>,
+    ) -> Result<String> {
         #[cfg(debug_assertions)]
         if std::env::var("HANDY_FORCE_TRANSCRIPTION_FAILURE").is_ok() {
             return Err(anyhow::anyhow!(
@@ -1140,7 +1299,7 @@ impl TranscriptionManager {
             }
 
             let engine_guard = self.lock_engine();
-            if engine_guard.is_none() {
+            if engine_guard.is_empty() {
                 return Err(anyhow::anyhow!("Model is not loaded for transcription."));
             }
         }
@@ -1170,12 +1329,6 @@ impl TranscriptionManager {
             );
         }
 
-        // Whether the loaded transcribe-cpp model advertises
-        // Feature::InitialPrompt. Informational (logged below); the whisper
-        // run extension and the fuzzy-correction skip are gated on
-        // `model_is_whisper` instead, since non-whisper archs can advertise
-        // the feature while rejecting the whisper-kind extension.
-        let mut model_takes_initial_prompt = false;
         // Whether the loaded model is actually whisper-family (arch string).
         // Non-whisper archs (e.g. Voxtral Small) can advertise
         // Feature::InitialPrompt yet reject the whisper-kind run extension
@@ -1189,10 +1342,10 @@ impl TranscriptionManager {
         let result = {
             let mut engine_guard = self.lock_engine();
 
-            // Take the engine out so we own it during transcription.
-            // If the engine panics, we simply don't put it back (effectively unloading it)
-            // instead of poisoning the mutex.
-            let mut engine = match engine_guard.take() {
+            // Take the engine for the active model out so we own it during
+            // transcription. If the engine panics, we simply don't put it back
+            // (effectively unloading it) instead of poisoning the mutex.
+            let mut engine = match engine_guard.remove(&active_model) {
                 Some(e) => e,
                 None => {
                     return Err(anyhow::anyhow!(
@@ -1214,7 +1367,7 @@ impl TranscriptionManager {
             if let LoadedEngine::TranscribeCpp(session) = &engine {
                 let model = session.model();
                 let caps = model.capabilities();
-                model_takes_initial_prompt = model.supports(Feature::InitialPrompt);
+                let model_takes_initial_prompt = model.supports(Feature::InitialPrompt);
                 model_is_whisper = model.arch() == "whisper";
                 model_supports_translate = caps.supports_translate;
                 model_languages = caps.languages;
@@ -1235,14 +1388,18 @@ impl TranscriptionManager {
                         // that accept one (whisper family). Attaching the
                         // whisper run extension to a non-whisper arch is rejected
                         // with INVALID_ARG, so skip it there and let the fuzzy
-                        // post-correction handle custom words instead.
-                        let family = if settings.custom_words.is_empty() || !model_is_whisper {
-                            None
+                        // post-correction handle custom words instead. The prompt
+                        // is capped (~200 tokens) so large enabled vocabularies
+                        // can't overflow whisper's prompt context.
+                        let family = if model_is_whisper {
+                            settings.custom_words_prompt().map(|initial_prompt| {
+                                RunExtension::Whisper(WhisperRunOptions {
+                                    initial_prompt: Some(initial_prompt),
+                                    ..Default::default()
+                                })
+                            })
                         } else {
-                            Some(RunExtension::Whisper(WhisperRunOptions {
-                                initial_prompt: Some(settings.custom_words.join(", ")),
-                                ..Default::default()
-                            }))
+                            None
                         };
 
                         let run_plan = transcribe_cpp_run_plan(
@@ -1347,6 +1504,44 @@ impl TranscriptionManager {
                             .map(|r| r.text)
                             .map_err(|e| anyhow::anyhow!("Cohere transcription failed: {}", e))
                     }
+                    LoadedEngine::OsSpeech => {
+                        #[cfg(target_os = "macos")]
+                        {
+                            let _ = wav_path;
+                            // SFSpeechRecognizer must run off the main thread and
+                            // off this task (it pumps a runloop internally); run it
+                            // on a fresh thread and join.
+                            let samples = audio.clone();
+                            let handle = thread::spawn(move || {
+                                crate::os_speech::transcribe_pcm(
+                                    &samples,
+                                    crate::audio_toolkit::constants::WHISPER_SAMPLE_RATE,
+                                )
+                            });
+                            handle
+                                .join()
+                                .map_err(|_| anyhow::anyhow!("OS speech transcription panicked"))?
+                                .map_err(|e| {
+                                    anyhow::anyhow!("OS speech transcription failed: {}", e)
+                                })
+                        }
+                        #[cfg(target_os = "windows")]
+                        {
+                            let Some(wav_path) = wav_path else {
+                                return Err(anyhow::anyhow!("OS speech requires a saved WAV file"));
+                            };
+                            crate::os_speech_win::transcribe_wav_file(wav_path).map_err(|e| {
+                                anyhow::anyhow!("OS speech transcription failed: {}", e)
+                            })
+                        }
+                        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+                        {
+                            let _ = wav_path;
+                            Err(anyhow::anyhow!(
+                                "OS speech recognition is not available on this platform"
+                            ))
+                        }
+                    }
                 }
             }));
 
@@ -1374,6 +1569,9 @@ impl TranscriptionManager {
                             .unwrap_or_else(|e| e.into_inner());
                         *current_model = None;
                     }
+                    // Drop any engine still resident under the panicked model's
+                    // id (e.g. a newer engine loaded while this one was leased).
+                    self.lock_engine().remove(&active_model);
 
                     let _ = self.app_handle.emit(
                         "model-state-changed",
@@ -1393,12 +1591,11 @@ impl TranscriptionManager {
             }
         };
 
-        // Apply fuzzy word correction if custom words are configured — UNLESS the
-        // words were already handed to the model as an initial prompt (whisper
-        // family). We don't pass a prompt to non-whisper models (it requires the
-        // whisper-kind run extension), so they still get fuzzy correction here,
-        // same as the ONNX engines.
-        let filtered_result = post_process_transcription_text(result, &settings, model_is_whisper);
+        // Apply fuzzy word correction to every engine. The initial prompt is
+        // only given to whisper models and is capped at ~200 tokens, so terms
+        // beyond the cap — and every term on non-whisper models — still get
+        // corrected here.
+        let filtered_result = post_process_transcription_text(result, &settings);
 
         let et = std::time::Instant::now();
         let translation_note = if settings.translate_to_english {
@@ -1605,20 +1802,13 @@ fn transcribe_cpp_run_plan(
     }
 }
 
-fn post_process_transcription_text(
-    raw: String,
-    settings: &AppSettings,
-    custom_words_already_prompted: bool,
-) -> String {
+fn post_process_transcription_text(raw: String, settings: &AppSettings) -> String {
     fail_open_text_transform(raw, |raw| {
-        let corrected = if !settings.custom_words.is_empty() && !custom_words_already_prompted {
-            apply_custom_words(
-                &raw,
-                &settings.custom_words,
-                settings.word_correction_threshold,
-            )
-        } else {
+        let custom_words = settings.effective_custom_words();
+        let corrected = if custom_words.is_empty() {
             raw
+        } else {
+            apply_custom_words(&raw, &custom_words, settings.word_correction_threshold)
         };
 
         filter_transcription_output(
@@ -2068,7 +2258,7 @@ impl Drop for TranscriptionManager {
         // its own clone, so engine's strong_count is always >= 2 while the
         // watcher is alive. When it reaches 1, only this instance remains
         // and we can safely shut down.
-        if Arc::strong_count(&self.engine) > 1 {
+        if Arc::strong_count(&self.engines) > 1 {
             return;
         }
 

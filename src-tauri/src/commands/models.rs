@@ -1,4 +1,4 @@
-use crate::managers::model::{ModelInfo, ModelManager};
+use crate::managers::model::{ModelInfo, ModelManager, OS_SPEECH_MODEL_ID};
 use crate::managers::transcription::{ModelStateEvent, TranscriptionManager};
 use crate::settings::{get_settings, write_settings, ModelUnloadTimeout};
 use log::error;
@@ -43,6 +43,10 @@ pub async fn download_model(
     model_manager: State<'_, Arc<ModelManager>>,
     model_id: String,
 ) -> Result<(), String> {
+    if model_id == OS_SPEECH_MODEL_ID {
+        return Err("This model cannot be downloaded".to_string());
+    }
+
     let result = model_manager
         .download_model(&model_id)
         .await
@@ -69,17 +73,21 @@ pub async fn delete_model(
     transcription_manager: State<'_, Arc<TranscriptionManager>>,
     model_id: String,
 ) -> Result<(), String> {
-    // If deleting the active model, unload it and clear the setting
+    if model_id == OS_SPEECH_MODEL_ID {
+        return Err("This model cannot be deleted".to_string());
+    }
+
+    // Unload just this model (with multi-model loading other models stay
+    // resident); if it was the selected model, clear the selection.
     let settings = get_settings(&app_handle);
     if settings.selected_model == model_id {
-        transcription_manager
-            .unload_model()
-            .map_err(|e| format!("Failed to unload model: {}", e))?;
-
         let mut settings = get_settings(&app_handle);
         settings.selected_model = String::new();
         write_settings(&app_handle, settings);
     }
+    transcription_manager
+        .unload_model_by_id(&model_id)
+        .map_err(|e| format!("Failed to unload model: {}", e))?;
 
     model_manager
         .delete_model(&model_id)
@@ -200,7 +208,45 @@ pub async fn cancel_download(
     model_manager: State<'_, Arc<ModelManager>>,
     model_id: String,
 ) -> Result<(), String> {
+    if model_id == OS_SPEECH_MODEL_ID {
+        return Err("This model cannot be downloaded".to_string());
+    }
     model_manager
         .cancel_download(&model_id)
         .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn get_loaded_models(
+    transcription_manager: State<'_, Arc<TranscriptionManager>>,
+) -> Result<Vec<String>, String> {
+    Ok(transcription_manager.get_loaded_models())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn set_multi_model_loading(
+    app_handle: AppHandle,
+    transcription_manager: State<'_, Arc<TranscriptionManager>>,
+    enabled: bool,
+) -> Result<(), String> {
+    let mut settings = get_settings(&app_handle);
+    settings.multi_model_loading = enabled;
+    let selected = settings.selected_model.clone();
+    write_settings(&app_handle, settings);
+
+    // Disabling multi-model loading drops every resident engine except the
+    // active one (which stays loaded for the next transcription).
+    if !enabled {
+        for model_id in transcription_manager.get_loaded_models() {
+            if model_id != selected {
+                transcription_manager
+                    .unload_model_by_id(&model_id)
+                    .map_err(|e| format!("Failed to unload model: {}", e))?;
+            }
+        }
+    }
+
+    Ok(())
 }

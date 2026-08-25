@@ -1,6 +1,18 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Cog, FlaskConical, History, Info, Sparkles, Cpu } from "lucide-react";
+import {
+  Cog,
+  FlaskConical,
+  History,
+  Home as HomeIcon,
+  Info,
+  NotebookPen,
+  Palette,
+  Sparkles,
+  Cpu,
+  FileAudio,
+  Library,
+} from "lucide-react";
 import HandyTextLogo from "./icons/HandyTextLogo";
 import HandyHand from "./icons/HandyHand";
 import { useSettings } from "../hooks/useSettings";
@@ -12,9 +24,41 @@ import {
   AboutSettings,
   PostProcessingSettings,
   ModelsSettings,
+  AppearanceSettings,
+  Home,
+  PromptHistory,
 } from "./settings";
+import { PromptLibraryView } from "./prompt-library/PromptLibraryView";
+import type { AppSection } from "../lib/types/navigation";
+import { TranscribeFiles } from "./transcribe/TranscribeFiles";
 
 export type SidebarSection = keyof typeof SECTIONS_CONFIG;
+
+/**
+ * Auxiliary window views that render a filtered sidebar (via `?view=`).
+ * @deprecated Legacy — main window now uses the Affinity persona shell
+ * (TopTabBar pills). Settings/Studio windows remain for backward compat
+ * only; new flows should switch `activeTab` in the main window instead.
+ */
+export type WindowView = "settings" | "studio";
+
+/**
+ * Sections shown per auxiliary window view, in display order. The main window
+ * uses the tab bar instead and passes no filter.
+ */
+export const WINDOW_SECTIONS: Record<WindowView, readonly SidebarSection[]> = {
+  settings: [
+    "general",
+    "appearance",
+    "history",
+    "models",
+    "advanced",
+    "postprocessing",
+    "debug",
+    "about",
+  ],
+  studio: ["prompt-library", "prompt-history"],
+};
 
 interface IconProps {
   width?: number | string;
@@ -27,15 +71,41 @@ interface IconProps {
 interface SectionConfig {
   labelKey: string;
   icon: React.ComponentType<IconProps>;
-  component: React.ComponentType;
+  component: React.ComponentType<{
+    onNavigate?: (section: AppSection) => void;
+  }>;
   enabled: (settings: any) => boolean;
 }
 
 export const SECTIONS_CONFIG = {
+  home: {
+    labelKey: "sidebar.home",
+    icon: HomeIcon,
+    component: Home,
+    enabled: () => true,
+  },
+  "prompt-library": {
+    labelKey: "sidebar.promptLibrary",
+    icon: Library,
+    component: PromptLibraryView,
+    enabled: () => true,
+  },
+  "prompt-history": {
+    labelKey: "sidebar.promptHistory",
+    icon: NotebookPen,
+    component: PromptHistory,
+    enabled: () => true,
+  },
   general: {
     labelKey: "sidebar.general",
     icon: HandyHand,
     component: GeneralSettings,
+    enabled: () => true,
+  },
+  appearance: {
+    labelKey: "sidebar.appearance",
+    icon: Palette,
+    component: AppearanceSettings,
     enabled: () => true,
   },
   history: {
@@ -48,6 +118,12 @@ export const SECTIONS_CONFIG = {
     labelKey: "sidebar.models",
     icon: Cpu,
     component: ModelsSettings,
+    enabled: () => true,
+  },
+  transcribe: {
+    labelKey: "sidebar.transcribe",
+    icon: FileAudio,
+    component: TranscribeFiles,
     enabled: () => true,
   },
   advanced: {
@@ -79,16 +155,22 @@ export const SECTIONS_CONFIG = {
 interface SidebarProps {
   activeSection: SidebarSection;
   onSectionChange: (section: SidebarSection) => void;
+  /** Restrict the sidebar to these sections (e.g. settings/studio windows). */
+  sections?: readonly SidebarSection[];
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   activeSection,
   onSectionChange,
+  sections,
 }) => {
   const { t } = useTranslation();
   const { settings } = useSettings();
 
   const availableSections = Object.entries(SECTIONS_CONFIG)
+    .filter(([id, config]) =>
+      sections ? sections.includes(id as SidebarSection) : true,
+    )
     .filter(([_, config]) => config.enabled(settings))
     .map(([id, config]) => ({ id: id as SidebarSection, ...config }));
 

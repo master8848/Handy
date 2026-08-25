@@ -4,5 +4,7 @@
 <dict>
   <key>NSMicrophoneUsageDescription</key>
   <string>Request microphone access to transcribe audio locally</string>
+  <key>NSSpeechRecognitionUsageDescription</key>
+  <string>Transcribe audio using the on-device speech recognizer</string>
 </dict>
 </plist>

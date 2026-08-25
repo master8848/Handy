@@ -93,6 +93,35 @@ pub struct LLMPrompt {
     pub prompt: String,
 }
 
+/// A named collection of terms that improve transcription accuracy. Enabled
+/// datasets are fed to Whisper-family models as an initial prompt (capped) and
+/// to every engine as fuzzy post-correction. Built-in datasets ship with the
+/// app (see `crate::vocab`) and are read-only; user datasets can be created,
+/// edited, imported from a file, and deleted.
+#[derive(Serialize, Deserialize, Debug, Clone, Type)]
+pub struct CustomWordDataset {
+    pub id: String,
+    pub name: String,
+    pub words: Vec<String>,
+    #[serde(default)]
+    pub builtin: bool,
+    #[serde(default)]
+    pub enabled: bool,
+}
+
+/// A user-defined find/replace pair applied to every transcription output
+/// before it is pasted. Lets users fix predictable mishearings (e.g. a
+/// colleague's name or product term the model consistently gets wrong) without
+/// retraining or re-prompting the model.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Type)]
+pub struct TextReplacement {
+    pub id: String,
+    pub find: String,
+    pub replace: String,
+    #[serde(default)]
+    pub enabled: bool,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Type)]
 pub struct PostProcessProvider {
     pub id: String,
@@ -142,6 +171,15 @@ pub enum ModelUnloadTimeout {
     Min15,
     Hour1,
     Sec15, // Debug mode only
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum ApiModelLoadPolicy {
+    #[default]
+    AutoAllow,
+    AlwaysAsk,
+    Never,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type)]
@@ -266,6 +304,22 @@ pub enum Theme {
     System,
     Light,
     Dark,
+}
+
+/// The accent (highlight) color used throughout the UI. Complements `Theme`:
+/// the theme picks the light/dark palette, the accent recolors the highlight
+/// tokens (logo, background-ui) via the `data-accent` attribute, which
+/// `src/styles/theme.css` maps to light/dark color pairs.
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum AccentColor {
+    #[default]
+    Pink,
+    Orange,
+    Purple,
+    Green,
+    Blue,
+    Red,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type, Default)]
@@ -393,8 +447,21 @@ pub struct AppSettings {
     pub log_level: LogLevel,
     #[serde(default)]
     pub custom_words: Vec<String>,
+    /// Named, toggleable term datasets. The legacy flat `custom_words` list is
+    /// migrated into the "My Words" dataset on first load (see
+    /// `apply_settings_migrations`); it is still honored by
+    /// `effective_custom_words()` for older callers.
+    #[serde(default)]
+    pub custom_word_datasets: Vec<CustomWordDataset>,
+    /// Find/replace pairs applied to transcription output before pasting.
+    #[serde(default)]
+    pub text_replacements: Vec<TextReplacement>,
     #[serde(default)]
     pub model_unload_timeout: ModelUnloadTimeout,
+    /// Keep several models loaded in memory at once; switching between loaded
+    /// models is then instant and does not drop the others.
+    #[serde(default)]
+    pub multi_model_loading: bool,
     #[serde(default = "default_word_correction_threshold")]
     pub word_correction_threshold: f64,
     #[serde(default = "default_history_limit")]
@@ -431,6 +498,8 @@ pub struct AppSettings {
     pub app_language: String,
     #[serde(default = "default_theme")]
     pub theme: Theme,
+    #[serde(default = "default_accent_color")]
+    pub accent_color: AccentColor,
     #[serde(default)]
     pub experimental_enabled: bool,
     #[serde(default)]
@@ -464,18 +533,42 @@ pub struct AppSettings {
     pub extra_recording_buffer_ms: u64,
     #[serde(default = "default_vad_enabled")]
     pub vad_enabled: bool,
+    #[serde(default = "default_spell_check_enabled")]
+    pub spell_check_enabled: bool,
     /// Which recording overlay to show: None / Minimal / Live. Streaming mode is
     /// not gated on this — that follows model capability. Migrated from the old
     /// `overlay_position` (position `none` → style `None`).
     #[serde(default = "default_overlay_style")]
     pub overlay_style: OverlayStyle,
+    /// When true, use a native overlay (NSPanel on macOS, HWND layered window on
+    /// Windows) instead of a WebView. Linux stays WebView even when true (gated
+    /// at runtime). Opt-in for v1; TODO Phase 5 flip to default true on
+    /// macOS/Windows once native parity is verified.
+    #[serde(default = "default_overlay_native_enabled")]
+    pub overlay_native_enabled: bool,
+    #[serde(default = "default_prompt_library_enabled")]
+    pub prompt_library_enabled: bool,
+    /// When enabled, Handy skips the main `WebviewWindow` and serves the UI
+    /// via a loopback HTTP server instead (Phase 2 server mode).
+    #[serde(default = "default_server_mode_enabled")]
+    pub server_mode_enabled: bool,
+    #[serde(default = "default_server_port")]
+    pub server_port: u16,
+    #[serde(default = "default_server_bind")]
+    pub server_bind: String,
+    #[serde(default)]
+    pub server_auth_token: Option<String>,
+    #[serde(default = "default_api_model_load_policy")]
+    pub api_model_load_policy: ApiModelLoadPolicy,
+    #[serde(default = "default_api_lazy_transcribe")]
+    pub api_lazy_transcribe: bool,
 }
 
 fn default_model() -> String {
     "".to_string()
 }
 
-const CURRENT_SETTINGS_SCHEMA_VERSION: u32 = 1;
+const CURRENT_SETTINGS_SCHEMA_VERSION: u32 = 3;
 
 fn default_settings_schema_version() -> u32 {
     CURRENT_SETTINGS_SCHEMA_VERSION
@@ -532,8 +625,51 @@ fn default_overlay_style() -> OverlayStyle {
     return OverlayStyle::Live;
 }
 
+fn default_overlay_native_enabled() -> bool {
+    #[cfg(target_os = "linux")]
+    return false;
+    #[cfg(not(target_os = "linux"))]
+    return true;
+}
+
 fn default_vad_enabled() -> bool {
     true
+}
+
+fn default_spell_check_enabled() -> bool {
+    true
+}
+
+fn default_prompt_library_enabled() -> bool {
+    false
+}
+
+fn default_server_mode_enabled() -> bool {
+    false
+}
+
+fn default_server_port() -> u16 {
+    17373
+}
+
+fn default_server_bind() -> String {
+    "127.0.0.1".to_string()
+}
+
+fn default_api_model_load_policy() -> ApiModelLoadPolicy {
+    ApiModelLoadPolicy::AutoAllow
+}
+
+fn default_api_lazy_transcribe() -> bool {
+    true
+}
+
+pub fn generate_server_auth_token() -> String {
+    use base64::Engine as _;
+    use rand::RngCore;
+    let mut bytes = [0u8; 32];
+    rand::thread_rng().fill_bytes(&mut bytes);
+    base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(&bytes)
 }
 
 fn default_debug_mode() -> bool {
@@ -578,6 +714,10 @@ fn default_sound_theme() -> SoundTheme {
 
 fn default_theme() -> Theme {
     Theme::System
+}
+
+fn default_accent_color() -> AccentColor {
+    AccentColor::Pink
 }
 
 fn default_post_process_enabled() -> bool {
@@ -840,6 +980,21 @@ pub fn get_default_settings() -> AppSettings {
             current_binding: "escape".to_string(),
         },
     );
+    #[cfg(target_os = "macos")]
+    let prompt_palette_default = "option+shift+p";
+    #[cfg(not(target_os = "macos"))]
+    let prompt_palette_default = "ctrl+shift+p";
+    bindings.insert(
+        "prompt_palette".to_string(),
+        ShortcutBinding {
+            id: "prompt_palette".to_string(),
+            name: "Prompt Palette".to_string(),
+            description: "Open the prompt library palette to search and insert prompts."
+                .to_string(),
+            default_binding: prompt_palette_default.to_string(),
+            current_binding: prompt_palette_default.to_string(),
+        },
+    );
 
     AppSettings {
         settings_schema_version: default_settings_schema_version(),
@@ -865,7 +1020,10 @@ pub fn get_default_settings() -> AppSettings {
         debug_mode: false,
         log_level: default_log_level(),
         custom_words: Vec::new(),
+        custom_word_datasets: Vec::new(),
+        text_replacements: Vec::new(),
         model_unload_timeout: ModelUnloadTimeout::default(),
+        multi_model_loading: false,
         word_correction_threshold: default_word_correction_threshold(),
         history_limit: default_history_limit(),
         recording_retention_period: default_recording_retention_period(),
@@ -884,6 +1042,7 @@ pub fn get_default_settings() -> AppSettings {
         append_trailing_space: false,
         app_language: default_app_language(),
         theme: default_theme(),
+        accent_color: default_accent_color(),
         experimental_enabled: false,
         lazy_stream_close: false,
         keyboard_implementation: KeyboardImplementation::default(),
@@ -899,7 +1058,16 @@ pub fn get_default_settings() -> AppSettings {
         transcribe_gpu_device: default_transcribe_gpu_device(),
         extra_recording_buffer_ms: 0,
         vad_enabled: default_vad_enabled(),
+        spell_check_enabled: default_spell_check_enabled(),
         overlay_style: default_overlay_style(),
+        overlay_native_enabled: default_overlay_native_enabled(),
+        prompt_library_enabled: default_prompt_library_enabled(),
+        server_mode_enabled: default_server_mode_enabled(),
+        server_port: default_server_port(),
+        server_bind: default_server_bind(),
+        server_auth_token: Some(generate_server_auth_token()),
+        api_model_load_policy: default_api_model_load_policy(),
+        api_lazy_transcribe: default_api_lazy_transcribe(),
     }
 }
 
@@ -929,6 +1097,62 @@ impl AppSettings {
         self.post_process_providers
             .iter_mut()
             .find(|provider| provider.id == provider_id)
+    }
+
+    /// Union of terms from enabled datasets plus the legacy flat `custom_words`
+    /// list (older builds / remote control still write it), deduplicated
+    /// case-insensitively while preserving order.
+    pub fn effective_custom_words(&self) -> Vec<String> {
+        let mut seen = std::collections::HashSet::new();
+        let mut words = Vec::new();
+        for word in self
+            .custom_word_datasets
+            .iter()
+            .filter(|dataset| dataset.enabled)
+            .flat_map(|dataset| dataset.words.iter())
+            .chain(self.custom_words.iter())
+        {
+            let word = word.trim().to_string();
+            if word.is_empty() || !seen.insert(word.to_lowercase()) {
+                continue;
+            }
+            words.push(word);
+        }
+        words
+    }
+
+    /// Initial prompt for Whisper-family models derived from the effective
+    /// custom words. Capped at ~200 tokens — Whisper's prompt context is 224
+    /// tokens, so feeding a multi-thousand-word vocabulary would overflow it,
+    /// and symbols (`+ # . / _ *`) tokenize into rare fragments that waste
+    /// budget and can bias prose output. Symbol-bearing terms still work
+    /// through fuzzy post-correction.
+    pub fn custom_words_prompt(&self) -> Option<String> {
+        const MAX_PROMPT_TOKENS: usize = 200;
+
+        fn is_prompt_safe(word: &str) -> bool {
+            word.chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == ' ' || c == '-')
+        }
+
+        let mut prompt = String::new();
+        let mut tokens = 0usize;
+        for word in self.effective_custom_words() {
+            if !is_prompt_safe(&word) {
+                continue;
+            }
+            // Rough token estimate: ~4 characters per token.
+            let word_tokens = word.len().div_ceil(4).max(1);
+            if tokens + word_tokens > MAX_PROMPT_TOKENS {
+                break;
+            }
+            if !prompt.is_empty() {
+                prompt.push_str(", ");
+            }
+            prompt.push_str(&word);
+            tokens += word_tokens;
+        }
+        (!prompt.is_empty()).then_some(prompt)
     }
 }
 
@@ -986,7 +1210,30 @@ pub fn get_settings(app: &AppHandle) -> AppSettings {
         store.set("settings", serde_json::to_value(&settings).unwrap());
     }
 
+    if ensure_builtin_datasets(&mut settings) {
+        store.set("settings", serde_json::to_value(&settings).unwrap());
+    }
+
     settings
+}
+
+/// Merges the built-in datasets bundled with the app into settings the first
+/// time they're seen, preserving the user's enabled flags by id. Built-ins
+/// live in the store once injected so their toggles persist across sessions.
+fn ensure_builtin_datasets(settings: &mut AppSettings) -> bool {
+    let mut changed = false;
+    for dataset in crate::vocab::builtin_datasets() {
+        if settings
+            .custom_word_datasets
+            .iter()
+            .any(|d| d.id == dataset.id)
+        {
+            continue;
+        }
+        settings.custom_word_datasets.push(dataset);
+        changed = true;
+    }
+    changed
 }
 
 /// Rebuilds settings from a store value that failed to deserialize as a whole.
@@ -1051,6 +1298,20 @@ fn apply_settings_migrations(
         updated = true;
     }
 
+    // One-time custom-words migration: the flat `custom_words` list becomes a
+    // user dataset so the dataset UI shows it. Runs only while the new key is
+    // absent and the legacy list has content.
+    if settings_value.get("custom_word_datasets").is_none() && !settings.custom_words.is_empty() {
+        settings.custom_word_datasets.push(CustomWordDataset {
+            id: "my-words".to_string(),
+            name: "My Words".to_string(),
+            words: std::mem::take(&mut settings.custom_words),
+            builtin: false,
+            enabled: true,
+        });
+        updated = true;
+    }
+
     let stored_schema_version = settings_value
         .get("settings_schema_version")
         .and_then(|v| v.as_u64())
@@ -1064,6 +1325,18 @@ fn apply_settings_migrations(
             settings.transcribe_accelerator = TranscribeAcceleratorSetting::Auto;
             settings.transcribe_gpu_device = default_transcribe_gpu_device();
         }
+        // Bump to 1 before the <2 migration so ordering is explicit.
+        settings.settings_schema_version = 1;
+        updated = true;
+    }
+    if stored_schema_version < 2 {
+        // Phase 5: server_mode / prompt_library / overlay_native flags were added.
+        // Missing keys already default via `#[serde(default)]` (overlay_native
+        // defaults true on macOS/Windows, false on Linux). Just bump the version.
+        settings.settings_schema_version = CURRENT_SETTINGS_SCHEMA_VERSION;
+        updated = true;
+    }
+    if stored_schema_version < 3 {
         settings.settings_schema_version = CURRENT_SETTINGS_SCHEMA_VERSION;
         updated = true;
     }
@@ -1143,7 +1416,8 @@ mod tests {
 
     /// Frozen snapshot of a real v0.9.0-era settings store, as written to
     /// disk. This pins backwards compatibility: it must always parse strictly
-    /// (no salvage) and require no migration rewrite.
+    /// (no salvage). After schema 2, version-1 stores migrate to 2 (new
+    /// server/prompt/overlay_native flags default via `#[serde(default)]`).
     ///
     /// If a schema change breaks this test, do NOT just update the fixture —
     /// it stands in for the stores on users' machines. Add a
@@ -1200,6 +1474,7 @@ mod tests {
             "debug_mode": false,
             "log_level": 2,
             "custom_words": ["Handy", "cjpais"],
+            "custom_word_datasets": [],
             "model_unload_timeout": "min5",
             "word_correction_threshold": 0.18,
             "history_limit": 5,
@@ -1242,6 +1517,7 @@ mod tests {
             "transcribe_gpu_device": 0,
             "extra_recording_buffer_ms": 0,
             "vad_enabled": true,
+            "spell_check_enabled": true,
             "overlay_style": "live"
         }"##,
         )
@@ -1255,8 +1531,23 @@ mod tests {
         assert_eq!(settings.log_level, LogLevel::Debug);
         assert_eq!(settings.sound_theme, SoundTheme::Pop);
 
-        // A current-format store must not be rewritten on every read.
-        assert!(!apply_settings_migrations(&mut settings, &stored));
+        // Phase 5: version 1 store migrates to 2; new flags default via serde(default).
+        assert!(apply_settings_migrations(&mut settings, &stored));
+        assert_eq!(settings.settings_schema_version, CURRENT_SETTINGS_SCHEMA_VERSION);
+        assert_eq!(settings.settings_schema_version, 2);
+        // New flags added in schema 2 stay at defaults when missing.
+        assert!(!settings.prompt_library_enabled);
+        assert!(!settings.server_mode_enabled);
+        assert_eq!(settings.server_port, default_server_port());
+        assert_eq!(settings.server_bind, default_server_bind());
+        assert!(settings.server_auth_token.is_none());
+        #[cfg(target_os = "linux")]
+        assert!(!settings.overlay_native_enabled);
+        #[cfg(not(target_os = "linux"))]
+        assert!(settings.overlay_native_enabled);
+        // Future reads of the migrated store must be idempotent.
+        let migrated_value = serde_json::to_value(&settings).unwrap();
+        assert!(!apply_settings_migrations(&mut settings, &migrated_value));
     }
 
     #[test]
@@ -1347,10 +1638,17 @@ mod tests {
             serde_json::json!([1, 2, 3]),
         ] {
             let salvaged = salvage_settings(&stored);
-            assert_eq!(
-                serde_json::to_value(&salvaged).unwrap(),
-                default_settings_json()
-            );
+            let mut salvaged_value = serde_json::to_value(&salvaged).unwrap();
+            let mut expected = default_settings_json();
+            // server_auth_token is randomly generated per get_default_settings() call; normalize.
+            salvaged_value
+                .as_object_mut()
+                .unwrap()
+                .remove("server_auth_token");
+            expected.as_object_mut().unwrap().remove("server_auth_token");
+            assert_eq!(salvaged_value, expected);
+            // Still ensure a token was generated (opt-in server auth).
+            assert!(salvaged.server_auth_token.is_some());
         }
     }
 
@@ -1363,6 +1661,101 @@ mod tests {
             settings.settings_schema_version,
             CURRENT_SETTINGS_SCHEMA_VERSION
         );
+    }
+
+    #[test]
+    fn legacy_custom_words_migrate_into_my_words_dataset() {
+        let mut settings = get_default_settings();
+        settings.custom_words = vec!["Handy".to_string(), "cjpais".to_string()];
+
+        let raw = serde_json::json!({
+            "settings_schema_version": 1,
+            "custom_words": ["Handy", "cjpais"]
+        });
+
+        assert!(apply_settings_migrations(&mut settings, &raw));
+        assert!(settings.custom_words.is_empty());
+        assert_eq!(settings.custom_word_datasets.len(), 1);
+        let dataset = &settings.custom_word_datasets[0];
+        assert_eq!(dataset.id, "my-words");
+        assert_eq!(dataset.name, "My Words");
+        assert_eq!(
+            dataset.words,
+            vec!["Handy".to_string(), "cjpais".to_string()]
+        );
+        assert!(!dataset.builtin);
+        assert!(dataset.enabled);
+    }
+
+    #[test]
+    fn legacy_custom_words_migration_skips_when_datasets_key_exists() {
+        let mut settings = get_default_settings();
+        settings.custom_words = vec!["Handy".to_string()];
+        let raw = serde_json::json!({
+            "custom_words": ["Handy"],
+            "custom_word_datasets": []
+        });
+        apply_settings_migrations(&mut settings, &raw);
+        assert!(settings.custom_word_datasets.is_empty());
+        // The legacy list must not be consumed by the datasets migration.
+        assert_eq!(settings.custom_words, vec!["Handy".to_string()]);
+    }
+
+    fn dataset(id: &str, enabled: bool, words: &[&str]) -> CustomWordDataset {
+        CustomWordDataset {
+            id: id.to_string(),
+            name: id.to_string(),
+            words: words.iter().map(|w| w.to_string()).collect(),
+            builtin: false,
+            enabled,
+        }
+    }
+
+    #[test]
+    fn effective_custom_words_unions_enabled_datasets_and_legacy() {
+        let mut settings = get_default_settings();
+        settings.custom_word_datasets = vec![
+            dataset("a", true, &["LLM", "llm", "Tauri"]),
+            dataset("b", false, &["React", "LLM"]),
+            dataset("c", true, &["Rust"]),
+        ];
+        settings.custom_words = vec!["rust".to_string()];
+
+        assert_eq!(
+            settings.effective_custom_words(),
+            vec!["LLM", "Tauri", "Rust"]
+        );
+    }
+
+    #[test]
+    fn custom_words_prompt_caps_tokens_and_skips_symbols() {
+        let mut settings = get_default_settings();
+        settings.custom_word_datasets =
+            vec![dataset("a", true, &["C++", "REST API", "Node.js", "LLM"])];
+        let prompt = settings.custom_words_prompt().unwrap();
+        assert!(prompt.contains("REST API"));
+        assert!(prompt.contains("LLM"));
+        assert!(!prompt.contains("C++"));
+        assert!(!prompt.contains("Node.js"));
+
+        // A long vocabulary must not overflow the ~200-token cap.
+        let big_words: Vec<String> = (0..2000).map(|i| format!("term-{i}")).collect();
+        let big_words: Vec<&str> = big_words.iter().map(String::as_str).collect();
+        settings.custom_word_datasets = vec![dataset("big", true, &big_words)];
+        let prompt = settings.custom_words_prompt().unwrap();
+        let token_estimate: usize = prompt
+            .split(", ")
+            .map(|word| word.len().div_ceil(4).max(1))
+            .sum();
+        assert!(token_estimate <= 200);
+    }
+
+    #[test]
+    fn custom_words_prompt_empty_when_nothing_enabled() {
+        let mut settings = get_default_settings();
+        settings.custom_word_datasets = vec![dataset("a", false, &["LLM"])];
+        assert!(settings.custom_words_prompt().is_none());
+        assert!(settings.effective_custom_words().is_empty());
     }
 
     #[cfg(not(target_os = "linux"))]

@@ -11,12 +11,14 @@
   },
   "sidebar": {
     "general": "Загальні",
+    "appearance": "Зовнішній вигляд",
     "models": "Моделі",
     "advanced": "Розширені",
     "postProcessing": "Постобробка",
     "history": "Історія",
     "debug": "Дебаг",
-    "about": "Інфо"
+    "about": "Інфо",
+    "transcribe": "Transcribe"
   },
   "onboarding": {
     "subtitle": "Для початку оберіть модель транскрипції",
@@ -152,7 +154,13 @@
     },
     "cancel": "Скасувати",
     "cancelDownload": "Скасувати завантаження",
-    "legacy": "Застаріле"
+    "loaded": "Завантажено",
+    "loadedCount": "{{count}} завантажено",
+    "unload": "Вивантажити",
+    "unloadTooltip": "Вивантажити модель з пам'яті",
+    "builtIn": "Вбудована",
+    "legacy": "Застаріле",
+    "loadedModels": "Loaded models"
   },
   "settings": {
     "modelSettings": {
@@ -209,6 +217,16 @@
         "allLanguages": "Усі мови"
       },
       "noModelsMatch": "Жодна модель не відповідає цьому фільтру.",
+      "loadedHint": "Натисніть, щоб миттєво перемкнутися",
+      "multiModel": {
+        "title": "Завантажувати кілька моделей одночасно",
+        "description": "Тримайте кілька моделей у пам'яті, щоб миттєво перемикатися та порівнювати транскрипції. Використовує більше оперативної пам'яті."
+      },
+      "osSpeech": {
+        "authRequired": "Для використання розпізнавання мовлення пристрою потрібен дозвіл",
+        "grantPermission": "Надати дозвіл",
+        "retry": "Повторити"
+      },
       "yourModels": "Завантажені моделі",
       "availableModels": "Доступні для завантаження",
       "searchPlaceholder": "Пошук моделей за назвою…",
@@ -368,6 +386,35 @@
       "voiceActivityDetection": {
         "title": "Виявлення голосової активності",
         "description": "Відфільтровує тишу із записів. Моделі з підтримкою потокової обробки використовують довший «хвіст» VAD; вимкнення VAD записує необроблений звук."
+      },
+      "customWordDatasets": {
+        "title": "Word Datasets",
+        "description": "Term lists that improve recognition of names and specialized terms. Toggle a dataset on to feed its terms to the model; every transcription is also fuzzy-corrected against enabled terms.",
+        "activeWords_one": "{{count}} word active",
+        "activeWords_other": "{{count}} words active",
+        "builtinBadge": "Built-in",
+        "words_one": "{{count}} word",
+        "words_other": "{{count}} words",
+        "expanded": "Show words",
+        "collapsed": "Hide words",
+        "toggle": "Toggle dataset",
+        "readOnlyHint": "Built-in datasets are read-only. Toggle them on or off.",
+        "addWordPlaceholder": "Add a term",
+        "add": "Add",
+        "removeWord": "Remove {{word}}",
+        "duplicateWord": "\"{{word}}\" already exists in this dataset",
+        "newDatasetPlaceholder": "Dataset name",
+        "create": "Create",
+        "deleteDataset": "Delete dataset",
+        "deleteConfirm": "Delete \"{{name}}\"? This cannot be undone.",
+        "rename": "Rename",
+        "importButton": "Import .txt",
+        "importSuccess": "Imported \"{{name}}\" with {{count}} words",
+        "importFailed": "Import failed: {{error}}",
+        "export": "Export",
+        "exportSuccess": "Exported \"{{name}}\"",
+        "exportFailed": "Export failed: {{error}}",
+        "emptyList": "No datasets yet. Create your own or import a .txt file with one term per line."
       }
     },
     "postProcessing": {
@@ -561,6 +608,22 @@
         "error": "Не вдалося переглянути примітки до випуску"
       }
     },
+    "appearance": {
+      "title": "Зовнішній вигляд",
+      "description": "Налаштуйте зовнішній вигляд Handy",
+      "accent": {
+        "title": "Акцентний колір",
+        "description": "Виберіть колір підсвітки, який використовується в додатку",
+        "options": {
+          "pink": "Рожевий",
+          "orange": "Помаранчевий",
+          "purple": "Фіолетовий",
+          "green": "Зелений",
+          "blue": "Синій",
+          "red": "Червоний"
+        }
+      }
+    },
     "about": {
       "title": "Інфо",
       "version": {
@@ -608,7 +671,13 @@
     "portableUpdateMessage": "Портативні встановлення не можна оновити автоматично. Завантажте нижче інсталятор для вашої системи, запустіть його та встановіть у ту саму теку — ваша тека Data/ (налаштування, моделі, записи) залишиться на місці.",
     "portableUpdateButton": "Завантажити інсталятор",
     "portableUpdateBrowseMessage": "Портативні встановлення не можна оновити автоматично. Завантажте найновішу версію для вашої системи зі сторінки GitHub Releases та встановіть її в ту саму теку — ваша тека Data/ (налаштування, моделі, записи) залишиться на місці.",
-    "portableUpdateBrowseButton": "Відкрити GitHub Releases"
+    "portableUpdateBrowseButton": "Відкрити GitHub Releases",
+    "harper": {
+      "label": "Spell check",
+      "ready": "Grammar & spelling engine ready",
+      "initializing": "Initializing grammar & spelling engine…",
+      "disabled": "Spell check disabled"
+    }
   },
   "common": {
     "loading": "Завантаження...",
@@ -671,5 +740,22 @@
     "learnMore": "Як це виправити",
     "recorderBlocked": "Зараз неможливо записати комбінацію — Secure Input у macOS блокує події клавіш. Спершу усуньте попередження про Secure Input.",
     "dismiss": "Приховати"
+  },
+  "dictation": {
+    "title": "Transcribe",
+    "description": "Type a prompt or dictate with the active speech-to-text model.",
+    "placeholder": "Type here or press the mic to dictate…",
+    "startRecording": "Start dictation",
+    "stopRecording": "Stop dictation",
+    "recording": "Recording…",
+    "transcribing": "Transcribing…",
+    "noModel": "No transcription model selected",
+    "noModelDescription": "Choose or download a model in the Models tab, or use the device's built-in speech recognition — no download needed.",
+    "useOnDevice": "Use device speech recognition",
+    "micError": "Couldn't start recording: {{error}}",
+    "empty": "No speech detected.",
+    "copied": "Copied to clipboard",
+    "spellCheck": "Spell check",
+    "cancel": "Cancel"
   }
 }

@@ -1,5 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { X } from "lucide-react";
 import type { ModelInfo } from "@/bindings";
 import {
   getTranslatedModelName,
@@ -9,19 +10,28 @@ import {
 interface ModelDropdownProps {
   models: ModelInfo[];
   currentModelId: string;
+  loadedModels: string[];
   onModelSelect: (modelId: string) => void;
+  onUnload: (modelId: string) => void;
 }
 
 const ModelDropdown: React.FC<ModelDropdownProps> = ({
   models,
   currentModelId,
+  loadedModels,
   onModelSelect,
+  onUnload,
 }) => {
   const { t } = useTranslation();
   const downloadedModels = models.filter((m) => m.is_downloaded);
 
   const handleModelClick = (modelId: string) => {
     onModelSelect(modelId);
+  };
+
+  const handleUnloadClick = (e: React.MouseEvent, modelId: string) => {
+    e.stopPropagation();
+    onUnload(modelId);
   };
 
   return (
@@ -55,6 +65,12 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
                         {t("modelSelector.custom")}
                       </span>
                     )}
+                    {(model.engine_type === "OsSpeech" ||
+                      model.id === "os-speech") && (
+                      <span className="ms-1.5 text-[10px] font-medium text-text/40 uppercase">
+                        {t("modelSelector.builtIn")}
+                      </span>
+                    )}
                     {model.supports_streaming && (
                       <span className="ms-1.5 text-[10px] font-medium text-logo-primary/70 uppercase">
                         {t("modelSelector.streaming")}
@@ -70,6 +86,31 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
                     {t("modelSelector.active")}
                   </div>
                 )}
+                {currentModelId !== model.id &&
+                  loadedModels.includes(model.id) && (
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs text-text/50">
+                        {t("modelSelector.loaded")}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => handleUnloadClick(e, model.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onUnload(model.id);
+                          }
+                        }}
+                        title={t("modelSelector.unloadTooltip")}
+                        aria-label={t("modelSelector.unloadTooltip")}
+                        tabIndex={0}
+                        className="text-text/40 hover:text-text/80 transition-colors focus:outline-none"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
               </div>
             </div>
           ))}

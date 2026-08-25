@@ -14,8 +14,9 @@ This guide covers how to set up the development environment and build Handy from
 
 #### macOS
 
-- Xcode Command Line Tools
-- Install with: `xcode-select --install`
+- **Xcode 15+** (full Xcode, not just Command Line Tools) — required for the native overlay Swift bridge (`tauri-nspanel 2.1`, `src-tauri/build.rs` `swiftc`/`libtool` → `liboverlay_macos.a`). With CLT-only the build falls back to a stub overlay (WebView) via `is_command_line_tools_only`.
+- Xcode Command Line Tools (minimum for non-native builds)
+- Install with: `xcode-select --install` (then install full Xcode from the App Store for native overlay)
 
 ##### Intel Mac (x86_64)
 
@@ -33,6 +34,8 @@ ORT_LIB_LOCATION=$(brew --prefix onnxruntime)/lib ORT_PREFER_DYNAMIC_LINK=1 bun 
 ```
 
 #### Windows
+
+> **Native overlay note:** Windows uses `softbuffer 0.4` + `tiny-skia 0.11` (CPU raster, layered `HWND`) for the native pill, **not** `wgpu`/GPU — `wgpu` would conflict with the Vulkan backend and is overkill for a `400×120` surface.
 
 - Microsoft C++ Build Tools: Visual Studio 2019/2022 with C++ development
   tools, or Visual Studio Build Tools 2019/2022
