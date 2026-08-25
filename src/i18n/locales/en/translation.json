@@ -529,6 +529,38 @@
         "serverStarted": "Server started at {{url}}",
         "serverStoppedToast": "Server stopped",
         "serverError": "Server error: {{error}}"
+      },
+      "api": {
+        "title": "Transcription API",
+        "description": "Expose a local HTTP API for speech-to-text. Any app on this machine can transcribe audio without re-implementing a model. Auth is required; only loopback (127.0.0.1) is allowed.",
+        "policy": {
+          "title": "Model Load Policy",
+          "description": "Who may cause a model to load or unload via the API.",
+          "options": {
+            "auto_allow": "Auto-allow — API may load/unload models on demand",
+            "always_ask": "Always ask — API load requires manual preload (returns 403)",
+            "never": "Never — API cannot trigger any load (preload in UI)"
+          }
+        },
+        "lazy": {
+          "title": "Lazy Transcribe",
+          "description": "When on, POST /api/transcribe and /v1/audio/* auto-load the selected (or requested) model if nothing is loaded. Disable to require an explicit POST /api/model/load first."
+        },
+        "baseUrl": "Base URL",
+        "tokenHint": "Use as Bearer token. Example: Authorization: Bearer <token>",
+        "openDocs": "Open API docs (OpenAPI JSON)",
+        "copyCurl": "Copy as cURL",
+        "copyJs": "Copy JS (openai SDK)",
+        "copyPython": "Copy Python",
+        "copied": "Copied",
+        "examples": {
+          "native": "Optimized Handy endpoint (JSON): POST /api/transcribe",
+          "openai": "OpenAI-compatible: POST /v1/audio/transcriptions",
+          "listModels": "List models: GET /v1/models or /api/models",
+          "modelStatus": "Model status: GET /api/model/status",
+          "loadModel": "Load model: POST /api/model/load"
+        },
+        "osSpeechHelp": "The model id \"os-speech\" uses the OS built-in recognizer. It fails with 503 when unavailable, and 403 when Speech permission is missing."
       }
     },
     "postProcessing": {
@@ -870,7 +902,7 @@
     "noModel": "No transcription model selected",
     "noModelDescription": "Choose or download a model in the Models tab, or use the device's built-in speech recognition — no download needed.",
     "useOnDevice": "Use device speech recognition",
-    "useOnDeviceFailed": "Couldn\u2019t enable device speech recognition",
+    "useOnDeviceFailed": "Couldn’t enable device speech recognition",
     "micError": "Couldn't start recording: {{error}}",
     "empty": "No speech detected.",
     "copied": "Copied to clipboard",
@@ -913,7 +945,7 @@
     "noModel": "No transcription model selected",
     "noModelDescription": "Choose or download a model in the Models tab, or use the device's built-in speech recognition — no download needed.",
     "useOnDevice": "Use device speech recognition",
-    "useOnDeviceFailed": "Couldn\u2019t enable device speech recognition",
+    "useOnDeviceFailed": "Couldn’t enable device speech recognition",
     "grantAccessHelp": "How to grant access",
     "history": {
       "title": "Pasted prompts",

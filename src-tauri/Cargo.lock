@@ -443,6 +443,7 @@ dependencies = [
  "matchit",
  "memchr",
  "mime",
+ "multer",
  "percent-encoding",
  "pin-project-lite",
  "rustversion",
@@ -720,7 +721,7 @@ dependencies = [
  "log",
  "num-traits",
  "portable-atomic",
- "spin",
+ "spin 0.10.1",
 ]
 
 [[package]]
@@ -772,7 +773,7 @@ dependencies = [
  "rmp-serde",
  "serde",
  "serde_json",
- "spin",
+ "spin 0.10.1",
  "uuid",
 ]
 
@@ -798,7 +799,7 @@ dependencies = [
  "num-traits",
  "rand 0.9.4",
  "serde",
- "spin",
+ "spin 0.10.1",
  "text_placeholder",
 ]
 
@@ -860,7 +861,7 @@ dependencies = [
  "hashbrown 0.15.5",
  "log",
  "serde",
- "spin",
+ "spin 0.10.1",
 ]
 
 [[package]]
@@ -896,7 +897,7 @@ dependencies = [
  "paste",
  "portable-atomic-util",
  "rand 0.9.4",
- "spin",
+ "spin 0.10.1",
 ]
 
 [[package]]
@@ -949,7 +950,7 @@ dependencies = [
  "burn-tensor",
  "hashbrown 0.15.5",
  "log",
- "spin",
+ "spin 0.10.1",
 ]
 
 [[package]]
@@ -1900,7 +1901,7 @@ dependencies = [
  "serde",
  "serde_bytes",
  "serde_json",
- "spin",
+ "spin 0.10.1",
  "wasm-bindgen-futures",
  "web-time",
 ]
@@ -2189,7 +2190,7 @@ dependencies = [
  "md5",
  "serde",
  "serde_json",
- "spin",
+ "spin 0.10.1",
  "thiserror 2.0.18",
  "toml 0.9.12+spec-1.1.0",
  "variadics_please",
@@ -2209,7 +2210,7 @@ dependencies = [
  "half",
  "paste",
  "serde",
- "spin",
+ "spin 0.10.1",
  "variadics_please",
 ]
 
@@ -5471,6 +5472,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "multer"
+version = "3.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "83e87776546dc87511aa5ee218730c92b666d7264ab6ed41f9d215af9cd5224b"
+dependencies = [
+ "bytes",
+ "encoding_rs",
+ "futures-util",
+ "http",
+ "httparse",
+ "memchr",
+ "mime",
+ "spin 0.9.9",
+ "version_check",
+]
+
+[[package]]
 name = "naga"
 version = "26.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8354,6 +8372,12 @@ dependencies = [
  "specta-serde",
  "thiserror 1.0.69",
 ]
+
+[[package]]
+name = "spin"
+version = "0.9.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3763264f6b73151db08c50ff20d7d8a0b8796e021cdea7ceedad07b80155fa0e"
 
 [[package]]
 name = "spin"

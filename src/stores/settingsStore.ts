@@ -182,6 +182,10 @@ const settingUpdaters: {
   server_mode_enabled: (value) =>
     commands.changeServerModeEnabledSetting(value as boolean),
   server_port: (value) => commands.changeServerPortSetting(value as number),
+  api_model_load_policy: (value) =>
+    commands.changeApiModelLoadPolicySetting(value as unknown as import("@/bindings").ApiModelLoadPolicy),
+  api_lazy_transcribe: (value) =>
+    commands.changeApiLazyTranscribeSetting(value as boolean),
   overlay_native_enabled: (value) =>
     commands.changeOverlayNativeEnabledSetting(value as boolean),
 };

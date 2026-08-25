@@ -82,6 +82,8 @@ Handy includes an advanced debug mode for development and troubleshooting. Acces
 
 Handy supports command-line flags for controlling a running instance and customizing startup behavior. These work on all platforms (macOS, Windows, Linux).
 
+Built with **[clap 4 (derive)]** (`src-tauri/src/cli.rs`) — adding a flag is a single `#[arg(long)]` field on `CliArgs`; dispatch lives in `lib.rs` and `signal_handle.rs`. See the full reference at **[docs/CLI.md](docs/CLI.md)**.
+
 **Remote control flags** (sent to an already-running instance via the single-instance plugin):
 
 ```bash
@@ -97,6 +99,16 @@ handy --start-hidden            # Start without showing the main window
 handy --no-tray                 # Start without the system tray icon
 handy --debug                   # Enable debug mode with verbose logging
 handy --help                    # Show all available flags
+```
+
+**Headless & prompt library:**
+
+```bash
+handy --transcribe-file out.wav --model parakeet-tdt-0.6b-v3 --json
+handy --list-devices
+handy --list-models --json
+handy prompt search "meeting notes" --json
+handy skill find "summarize" --json
 ```
 
 Flags can be combined for autostart scenarios:

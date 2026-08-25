@@ -422,6 +422,10 @@ impl TranscriptionManager {
         })
     }
 
+    pub fn is_loading_flag(&self) -> bool {
+        *self.is_loading.lock().unwrap()
+    }
+
     pub fn unload_model(&self) -> Result<()> {
         let unload_start = std::time::Instant::now();
         debug!("Starting to unload model");

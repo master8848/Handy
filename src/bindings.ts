@@ -531,6 +531,22 @@ async regenerateServerTokenSetting() : Promise<Result<string, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+async changeApiModelLoadPolicySetting(policy: ApiModelLoadPolicy) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_api_model_load_policy_setting", { policy }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async changeApiLazyTranscribeSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_api_lazy_transcribe_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async changeOverlayNativeEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("change_overlay_native_enabled_setting", { enabled }) };
@@ -1449,7 +1465,7 @@ reliable_paste?: boolean; typing_tool?: TypingTool; external_script_path?: strin
  * not gated on this — that follows model capability. Migrated from the old
  * `overlay_position` (position `none` → style `None`).
  */
-overlay_style?: OverlayStyle; overlay_native_enabled?: boolean; prompt_library_enabled?: boolean; server_mode_enabled?: boolean; server_port?: number; server_bind?: string; server_auth_token?: string | null }
+overlay_style?: OverlayStyle; overlay_native_enabled?: boolean; prompt_library_enabled?: boolean; server_mode_enabled?: boolean; server_port?: number; server_bind?: string; server_auth_token?: string | null; api_model_load_policy?: ApiModelLoadPolicy; api_lazy_transcribe?: boolean }
 export type AudioDevice = { index: string; name: string; is_default: boolean }
 export type AutoSubmitKey = "enter" | "ctrl_enter" | "cmd_enter"
 export type AvailableAccelerators = { transcribe: string[]; ort: string[]; gpu_devices: GpuDeviceOption[] }
@@ -1668,6 +1684,7 @@ export type TextReplacement = { id: string; find: string; replace: string; enabl
  * and `Dark` force one of the two palettes Handy already ships.
  */
 export type Theme = "system" | "light" | "dark"
+export type ApiModelLoadPolicy = "auto_allow" | "always_ask" | "never"
 export type BrowserServerStatus = { running: boolean; port: number | null; url: string | null }
 export type TranscribeAcceleratorSetting = "auto" | "cpu" | "gpu"
 export type TypingTool = "auto" | "wtype" | "kwtype" | "dotool" | "ydotool" | "xdotool"

@@ -14,6 +14,7 @@ export const ServerSettings: React.FC<{ grouped?: boolean }> = ({ grouped = fals
   const port = (getSetting("server_port") as number) ?? 17373;
   const token = (getSetting("server_auth_token") as string | null) ?? null;
   const experimentalEnabled = (getSetting("experimental_enabled") as boolean) ?? false;
+
   const [copied, setCopied] = useState(false);
   const [regenLoading, setRegenLoading] = useState(false);
 

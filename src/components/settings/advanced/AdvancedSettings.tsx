@@ -24,6 +24,7 @@ import { AccelerationSelector } from "../AccelerationSelector";
 import { LazyStreamClose } from "../LazyStreamClose";
 import { ServerSettings } from "../ServerSettings";
 import { BrowserPreviewToggle } from "../BrowserPreviewToggle";
+import { ApiSettings } from "../ApiSettings";
 
 /**
  * Choice: reuse `server_mode_enabled` as the browser preview flag (no new field).
@@ -48,6 +49,7 @@ export const AdvancedSettings: React.FC = () => {
         <ModelUnloadTimeoutSetting descriptionMode="tooltip" grouped={true} />
         <ExperimentalToggle descriptionMode="tooltip" grouped={true} />
         <ServerSettings grouped={true} />
+        <ApiSettings grouped={true} />
       </SettingsGroup>
 
       <SettingsGroup title={t("settings.advanced.groups.output")}>

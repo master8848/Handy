@@ -786,6 +786,8 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_server_mode_enabled_setting,
             shortcut::change_server_port_setting,
             shortcut::regenerate_server_token_setting,
+            shortcut::change_api_model_load_policy_setting,
+            shortcut::change_api_lazy_transcribe_setting,
             shortcut::change_overlay_native_enabled_setting,
             server::get_browser_server_status,
             server::start_browser_server,

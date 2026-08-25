@@ -1402,6 +1402,24 @@ pub fn regenerate_server_token_setting(app: AppHandle) -> Result<String, String>
 
 #[tauri::command]
 #[specta::specta]
+pub fn change_api_model_load_policy_setting(app: AppHandle, policy: crate::settings::ApiModelLoadPolicy) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.api_model_load_policy = policy;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_api_lazy_transcribe_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.api_lazy_transcribe = enabled;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
 pub fn change_overlay_native_enabled_setting(
     app: AppHandle,
     enabled: bool,

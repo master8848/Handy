@@ -173,6 +173,15 @@ pub enum ModelUnloadTimeout {
     Sec15, // Debug mode only
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum ApiModelLoadPolicy {
+    #[default]
+    AutoAllow,
+    AlwaysAsk,
+    Never,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type)]
 #[serde(rename_all = "snake_case")]
 pub enum PasteMethod {
@@ -549,13 +558,17 @@ pub struct AppSettings {
     pub server_bind: String,
     #[serde(default)]
     pub server_auth_token: Option<String>,
+    #[serde(default = "default_api_model_load_policy")]
+    pub api_model_load_policy: ApiModelLoadPolicy,
+    #[serde(default = "default_api_lazy_transcribe")]
+    pub api_lazy_transcribe: bool,
 }
 
 fn default_model() -> String {
     "".to_string()
 }
 
-const CURRENT_SETTINGS_SCHEMA_VERSION: u32 = 2;
+const CURRENT_SETTINGS_SCHEMA_VERSION: u32 = 3;
 
 fn default_settings_schema_version() -> u32 {
     CURRENT_SETTINGS_SCHEMA_VERSION
@@ -641,6 +654,14 @@ fn default_server_port() -> u16 {
 
 fn default_server_bind() -> String {
     "127.0.0.1".to_string()
+}
+
+fn default_api_model_load_policy() -> ApiModelLoadPolicy {
+    ApiModelLoadPolicy::AutoAllow
+}
+
+fn default_api_lazy_transcribe() -> bool {
+    true
 }
 
 pub fn generate_server_auth_token() -> String {
@@ -1045,6 +1066,8 @@ pub fn get_default_settings() -> AppSettings {
         server_port: default_server_port(),
         server_bind: default_server_bind(),
         server_auth_token: Some(generate_server_auth_token()),
+        api_model_load_policy: default_api_model_load_policy(),
+        api_lazy_transcribe: default_api_lazy_transcribe(),
     }
 }
 
@@ -1310,6 +1333,10 @@ fn apply_settings_migrations(
         // Phase 5: server_mode / prompt_library / overlay_native flags were added.
         // Missing keys already default via `#[serde(default)]` (overlay_native
         // defaults true on macOS/Windows, false on Linux). Just bump the version.
+        settings.settings_schema_version = CURRENT_SETTINGS_SCHEMA_VERSION;
+        updated = true;
+    }
+    if stored_schema_version < 3 {
         settings.settings_schema_version = CURRENT_SETTINGS_SCHEMA_VERSION;
         updated = true;
     }
