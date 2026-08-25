@@ -539,6 +539,25 @@ async changeOverlayNativeEnabledSetting(enabled: boolean) : Promise<Result<null,
     else return { status: "error", error: e  as any };
 }
 },
+async getBrowserServerStatus() : Promise<BrowserServerStatus> {
+    return await TAURI_INVOKE("get_browser_server_status");
+},
+async startBrowserServer() : Promise<Result<BrowserServerStatus, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("start_browser_server") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async stopBrowserServer() : Promise<Result<BrowserServerStatus, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("stop_browser_server") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 /**
  * Start key recording mode
  */
@@ -1649,6 +1668,7 @@ export type TextReplacement = { id: string; find: string; replace: string; enabl
  * and `Dark` force one of the two palettes Handy already ships.
  */
 export type Theme = "system" | "light" | "dark"
+export type BrowserServerStatus = { running: boolean; port: number | null; url: string | null }
 export type TranscribeAcceleratorSetting = "auto" | "cpu" | "gpu"
 export type TypingTool = "auto" | "wtype" | "kwtype" | "dotool" | "ydotool" | "xdotool"
 export type WindowsMicrophonePermissionStatus = { supported: boolean; overall_access: PermissionAccess; device_access: PermissionAccess; app_access: PermissionAccess; desktop_app_access: PermissionAccess }

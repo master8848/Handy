@@ -73,6 +73,21 @@
   text-underline-offset: 3px;
 }
 
+/* Variable chips — {{var}} rendered as pills via ProseMirror decorations */
+.prompt-var-chip {
+  background: color-mix(in srgb, var(--color-logo-primary) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-logo-primary) 35%, transparent);
+  color: var(--color-logo-primary);
+  border-radius: 9999px;
+  padding: 0 0.35rem;
+  font-size: 0.78em;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.ptap-body .prompt-var-chip {
+  line-height: 1.2;
+}
+
 /* Tiptap editor body (Prompt Studio): mirrors the old textarea's typography,
    grows with content up to ~40vh, and never shows a browser spell underline
    (Harper is the checker here). */

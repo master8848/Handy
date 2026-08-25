@@ -34,7 +34,12 @@ import { TranscribeFiles } from "./transcribe/TranscribeFiles";
 
 export type SidebarSection = keyof typeof SECTIONS_CONFIG;
 
-/** Auxiliary window views that render a filtered sidebar (via `?view=`). */
+/**
+ * Auxiliary window views that render a filtered sidebar (via `?view=`).
+ * @deprecated Legacy — main window now uses the Affinity persona shell
+ * (TopTabBar pills). Settings/Studio windows remain for backward compat
+ * only; new flows should switch `activeTab` in the main window instead.
+ */
 export type WindowView = "settings" | "studio";
 
 /**

@@ -23,7 +23,16 @@ import { VoiceActivityDetection } from "../VoiceActivityDetection";
 import { AccelerationSelector } from "../AccelerationSelector";
 import { LazyStreamClose } from "../LazyStreamClose";
 import { ServerSettings } from "../ServerSettings";
+import { BrowserPreviewToggle } from "../BrowserPreviewToggle";
 
+/**
+ * Choice: reuse `server_mode_enabled` as the browser preview flag (no new field).
+ * UI is gated behind `experimental_enabled`: toolbar dropdown and the
+ * "Show in Browser (experimental)" toggle are hidden unless experimental is on.
+ * ServerSettings remains functional; when experimental is on it shows a toolbar
+ * note and can also be toggled from the toolbar without restart via the
+ * browser-server commands.
+ */
 export const AdvancedSettings: React.FC = () => {
   const { t } = useTranslation();
   const { getSetting } = useSettings();
@@ -65,6 +74,7 @@ export const AdvancedSettings: React.FC = () => {
 
       {experimentalEnabled && (
         <SettingsGroup title={t("settings.advanced.groups.experimental")}>
+          <BrowserPreviewToggle descriptionMode="tooltip" grouped={true} />
           <PostProcessingToggle descriptionMode="tooltip" grouped={true} />
           <KeyboardImplementationSelector
             descriptionMode="tooltip"

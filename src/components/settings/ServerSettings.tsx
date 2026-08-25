@@ -13,6 +13,7 @@ export const ServerSettings: React.FC<{ grouped?: boolean }> = ({ grouped = fals
   const enabled = (getSetting("server_mode_enabled") as boolean) ?? false;
   const port = (getSetting("server_port") as number) ?? 17373;
   const token = (getSetting("server_auth_token") as string | null) ?? null;
+  const experimentalEnabled = (getSetting("experimental_enabled") as boolean) ?? false;
   const [copied, setCopied] = useState(false);
   const [regenLoading, setRegenLoading] = useState(false);
 
@@ -106,6 +107,11 @@ export const ServerSettings: React.FC<{ grouped?: boolean }> = ({ grouped = fals
       {enabled && (
         <div className="px-4 py-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-md border border-amber-200 dark:border-amber-800">
           {t("settings.advanced.serverMode.restartHint")}
+        </div>
+      )}
+      {experimentalEnabled && (
+        <div className="px-4 py-2 text-xs text-mid-gray bg-mid-gray/5 rounded-md border border-mid-gray/20">
+          {t("settings.advanced.serverMode.toolbarNote")}
         </div>
       )}
     </div>

@@ -13,6 +13,7 @@ import AccessibilityPermissions from "./components/AccessibilityPermissions";
 import SecureInputWarning from "./components/SecureInputWarning";
 import Footer from "./components/footer";
 import Onboarding, { AccessibilityOnboarding } from "./components/onboarding";
+import { Mic, Library, FileAudio } from "lucide-react";
 import {
   Sidebar,
   SidebarSection,
@@ -26,6 +27,7 @@ import { TranscribeFiles } from "./components/transcribe/TranscribeFiles";
 import { WhatsNewGate } from "./components/whats-new";
 import { PromptPalette } from "./components/prompt-library/PromptPalette";
 import { Home } from "./components/settings";
+import { ScreenshotsPage } from "./components/screenshots/ScreenshotsPage";
 import { useSettings } from "./hooks/useSettings";
 import { useSettingsStore } from "./stores/settingsStore";
 import { commands } from "@/bindings";
@@ -41,6 +43,11 @@ type OnboardingStep = "accessibility" | "model" | "done";
 const getWindowView = (): WindowView | null => {
   const view = new URLSearchParams(window.location.search).get("view");
   return view === "settings" || view === "studio" ? view : null;
+};
+
+const isScreenshotsView = (): boolean => {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("view") === "screenshots" || params.get("screenshots") === "1";
 };
 
 const renderSettingsContent = (
@@ -66,8 +73,35 @@ function App() {
   const [currentSection, setCurrentSection] = useState<SidebarSection>(
     windowView === "studio" ? "prompt-library" : "general",
   );
-  const [activeTab, setActiveTab] = useState<MainTab>("dictate");
+  const getInitialTab = (): MainTab => {
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get("tab") as MainTab | null;
+    if (tabParam && ["dictate", "prompt", "transcribe"].includes(tabParam)) return tabParam;
+    try {
+      const stored = localStorage.getItem("handy.activeTab") as MainTab | null;
+      if (stored && ["dictate", "prompt", "transcribe"].includes(stored)) return stored;
+    } catch {
+      // ignore
+    }
+    return "dictate";
+  };
+  const [activeTab, setActiveTab] = useState<MainTab>(() => getInitialTab());
   const { settings, updateSetting } = useSettings();
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("handy.activeTab", activeTab);
+    } catch {
+      // ignore
+    }
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", activeTab);
+      window.history.replaceState(null, "", url.toString());
+    } catch {
+      // ignore
+    }
+  }, [activeTab]);
   const direction = getLanguageDirection(i18n.language);
   const refreshAudioDevices = useSettingsStore(
     (state) => state.refreshAudioDevices,
@@ -225,23 +259,28 @@ function App() {
     }
   };
 
-  // In the main window there is no sidebar; deep-links from tab content into
-  // prompt-library / settings sections open their dedicated windows instead.
+  // Prompt library/history now live inside the Prompt Studio persona (activeTab="prompt").
+  // In the main window, navigating to those sections switches the persona tab instead
+  // of opening a separate OS window. The studio window is kept for backward
+  // compatibility but all new flows should use the in-window persona.
   const handleMainWindowNavigate = (section: SidebarSection) => {
     if (section === "prompt-library" || section === "prompt-history") {
-      commands.openAppWindow("studio").catch((e) => {
-        console.warn("Failed to open prompt studio window:", e);
-      });
+      setActiveTab("prompt");
       return;
     }
-    if (!["home", "transcribe"].includes(section)) {
-      commands.openAppWindow("settings").catch((e) => {
-        console.warn("Failed to open settings window:", e);
-      });
+    if (section === "transcribe") {
+      setActiveTab("transcribe");
+      return;
     }
+    if (section === "home") {
+      setActiveTab("dictate");
+      return;
+    }
+    commands.openAppWindow("settings").catch((e) => {
+      console.warn("Failed to open settings window:", e);
+    });
   };
 
-  const openStudioWindow = () => handleMainWindowNavigate("prompt-library");
   const openSettingsWindow = () => handleMainWindowNavigate("general");
 
   const checkOnboardingStatus = async () => {
@@ -326,6 +365,8 @@ function App() {
     setOnboardingStep("done");
   };
 
+  const [screenshotsView] = useState<boolean>(() => isScreenshotsView());
+
   // Rendered once around every step below (including onboarding) so
   // toast.error() calls surface to the user. sonner renders via a portal, so
   // its position in the tree doesn't affect layout. Without this, errors during
@@ -350,6 +391,18 @@ function App() {
     />
   );
 
+  // Screenshots gallery bypasses onboarding (dev-only, no Tauri required).
+  // Reachable via `?view=screenshots` or `?screenshots=1`. Documented URL:
+  // http://localhost:5173/?view=screenshots
+  if (screenshotsView) {
+    return (
+      <>
+        {toaster}
+        <ScreenshotsPage />
+      </>
+    );
+  }
+
   // Still checking onboarding status (main window only)
   if (onboardingStep === null) {
     return null;
@@ -366,22 +419,53 @@ function App() {
   } else if (onboardingStep === "model") {
     content = <Onboarding onModelSelected={handleModelSelected} />;
   } else if (isMainWindow) {
+    const stripActive = "w-8 h-8 grid place-items-center rounded-lg bg-logo-primary/15 text-logo-primary";
+    const stripIdle = "w-8 h-8 grid place-items-center rounded-lg hover:bg-mid-gray/10 text-text/30 hover:text-text/60";
     content = (
       <div
         dir={direction}
         className="h-screen flex flex-col select-none cursor-default"
       >
         <WhatsNewGate />
-        {/* Main content area that takes remaining space */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Affinity-style top tab bar: Dictate | Prompt | Transcribe */}
-          <TopTabBar
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            onOpenStudio={openStudioWindow}
-            onOpenSettings={openSettingsWindow}
-          />
-          {/* Scrollable content area */}
+        <TopTabBar
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          onOpenSettings={openSettingsWindow}
+        />
+        <div className="flex-1 flex min-h-0 overflow-hidden">
+          <div className="hidden sm:flex w-[48px] shrink-0 border-e border-mid-gray/10 flex-col items-center py-3 gap-1">
+            {activeTab === "dictate" && (
+              <>
+                <button type="button" className={stripActive} aria-label={t("tabs.dictate")}>
+                  <Mic className="w-4 h-4" />
+                </button>
+                <button type="button" className={stripIdle} aria-hidden>
+                  <Library className="w-4 h-4 opacity-60" />
+                </button>
+              </>
+            )}
+            {activeTab === "prompt" && (
+              <>
+                <button type="button" className={stripActive} aria-label={t("tabs.prompt")}>
+                  <Library className="w-4 h-4" />
+                </button>
+                <button type="button" className={stripIdle} aria-hidden>
+                  <Mic className="w-4 h-4 opacity-60" />
+                </button>
+              </>
+            )}
+            {activeTab === "transcribe" && (
+              <>
+                <button type="button" className={stripActive} aria-label={t("tabs.transcribe")}>
+                  <FileAudio className="w-4 h-4" />
+                </button>
+                <button type="button" className={stripIdle} aria-hidden>
+                  <Mic className="w-4 h-4 opacity-60" />
+                </button>
+              </>
+            )}
+            <div className="flex-1" />
+          </div>
           <div className="flex-1 overflow-y-auto">
             <div className="flex flex-col items-center p-4 gap-4">
               <AccessibilityPermissions />
@@ -394,7 +478,6 @@ function App() {
             </div>
           </div>
         </div>
-        {/* Fixed footer at bottom */}
         <Footer />
       </div>
     );

@@ -27,7 +27,7 @@
   },
   "tabs": {
     "dictate": "Dictate",
-    "prompt": "Prompt",
+    "prompt": "Prompt Studio",
     "transcribe": "Transcribe"
   },
   "promptLibrary": {
@@ -509,7 +509,26 @@
         "copied": "Copied",
         "regenerate": "Regenerate",
         "requiresRestart": "Requires restart to take effect.",
-        "restartHint": "Quit and reopen Handy after toggling server mode or changing the port."
+        "restartHint": "Quit and reopen Handy after toggling server mode or changing the port.",
+        "toolbarNote": "Tip: when Experimental is on, you can start/stop the server instantly from the toolbar menu (no restart needed)."
+      },
+      "browserPreview": {
+        "label": "Show in Browser (experimental)",
+        "description": "Expose Handy in your browser at http://127.0.0.1:{{port}} without restarting. Restart still required for full server mode.",
+        "running": "Running",
+        "stopped": "Stopped"
+      },
+      "toolbar": {
+        "preferences": "Preferences",
+        "showInBrowser": "Show in Browser",
+        "startServer": "Start Server",
+        "stopServer": "Stop Server",
+        "openInBrowser": "Open in Browser",
+        "serverRunning": "Server running",
+        "serverStopped": "Server stopped",
+        "serverStarted": "Server started at {{url}}",
+        "serverStoppedToast": "Server stopped",
+        "serverError": "Server error: {{error}}"
       }
     },
     "postProcessing": {
@@ -919,6 +938,33 @@
     "placeholder": "Write your prompt here — or dictate it with the mic…",
     "insertFromLibrary": "Insert from Library"
   },
+  "promptStudio": {
+    "composerPlaceholder": "Write or insert a prompt…",
+    "searchPlaceholder": "Search prompts…",
+    "searchAriaLabel": "Search prompts",
+    "allFolders": "All",
+    "allTags": "All tags",
+    "send": "Send",
+    "insert": "Insert",
+    "copy": "Copy",
+    "clear": "Clear",
+    "sending": "Sending…",
+    "sent": "Pasted into the active app",
+    "sendFailed": "Couldn't paste",
+    "copied": "Copied",
+    "noPrompts": "No prompts yet",
+    "noResults": "No prompts match",
+    "showAll": "Show all in Library",
+    "showLess": "Show less",
+    "library": "Library",
+    "history": "Recent inserts",
+    "historyEmpty": "Nothing pasted yet",
+    "historyShowAll": "View all",
+    "historyReuse": "Load",
+    "newPrompt": "New",
+    "variables": "Variables",
+    "spellCheck": "Spell check"
+  },
   "transcribe": {
     "dropTitle": "Drop an audio file to transcribe",
     "dropHint": "Supported formats: {{formats}} — decoded locally, nothing is uploaded",
@@ -932,5 +978,64 @@
     "copy": "Copy",
     "copied": "Copied!",
     "tryAgain": "Pick another file or try again."
+  },
+  "screenshots": {
+    "title": "Screenshots",
+    "description": "Captured UI screenshots for README and store listings. Pick which ones to publish to GitHub.",
+    "experimentalBadge": "Experimental — not committed to GitHub yet",
+    "publish": "Publish",
+    "selectAll": "Select all",
+    "selectNone": "Select none",
+    "copyMarkdown": "Copy markdown table",
+    "copied": "Copied!",
+    "markdownPreview": "Markdown table preview",
+    "emptySelection": "No screenshots selected.",
+    "missing": "Missing: {{file}}",
+    "runCaptureHint": "Run capture script first: bun run screenshots:capture",
+    "howToTitle": "How to use",
+    "howToCaptureLine": "{{command}} — captures all personas to screenshots/",
+    "howToViewLine": "{{url}} — view this gallery in the browser",
+    "howToPublish": "Check the screenshots you want to publish, copy the markdown table, and paste it into the README or PR.",
+    "dimensions": "{{file}} · {{width}}px",
+    "pathLabel": "screenshots/{{file}}",
+    "table": {
+      "preview": "Preview",
+      "file": "File",
+      "description": "Description"
+    },
+    "items": {
+      "dictateDesktop": {
+        "title": "Dictate — Desktop",
+        "description": "Dictation persona with the prompt editor and spell check."
+      },
+      "promptDesktop": {
+        "title": "Prompt Studio — Desktop",
+        "description": "Full-width Prompt Workbench with format toolbar and library insert."
+      },
+      "transcribeDesktop": {
+        "title": "Transcribe — Desktop",
+        "description": "Audio file drop zone and transcription result view."
+      },
+      "toolbarDropdown": {
+        "title": "Toolbar dropdown",
+        "description": "Experimental toolbar dropdown open (settings/model controls)."
+      },
+      "promptExpanded": {
+        "title": "Prompt Studio — Expanded",
+        "description": "Prompt Workbench with example content and expanded editor state."
+      },
+      "dictateMobile": {
+        "title": "Dictate — Mobile",
+        "description": "Dictation persona at 390px mobile width."
+      },
+      "promptMobile": {
+        "title": "Prompt Studio — Mobile",
+        "description": "Prompt Workbench at 390px mobile width."
+      },
+      "transcribeMobile": {
+        "title": "Transcribe — Mobile",
+        "description": "File transcription persona at 390px mobile width."
+      }
+    }
   }
 }

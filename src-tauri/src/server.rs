@@ -6,6 +6,8 @@ use axum::{
     routing::get,
     Extension, Router,
 };
+use serde::Serialize;
+use specta::Type;
 use std::{net::SocketAddr, path::PathBuf, sync::Mutex};
 use tauri::{AppHandle, Manager};
 use tower_http::{
@@ -193,6 +195,13 @@ async fn bind_with_retry(
     ))
 }
 
+#[derive(Serialize, Type, Debug, Clone)]
+pub struct BrowserServerStatus {
+    pub running: bool,
+    pub port: Option<u16>,
+    pub url: Option<String>,
+}
+
 pub async fn start_server(app: AppHandle) -> Result<u16, String> {
     if let Some(state) = app.try_state::<ServerState>() {
         if let Some(p) = state.port() {
@@ -265,6 +274,69 @@ pub fn stop_server(app: &AppHandle) {
             let _ = inner.shutdown_tx.send(());
         }
     }
+}
+
+// --- Experimental "Show in Browser" runtime controls (no restart required) ---
+
+#[tauri::command]
+#[specta::specta]
+pub fn get_browser_server_status(app: AppHandle) -> BrowserServerStatus {
+    if let Some(state) = app.try_state::<ServerState>() {
+        if let Some(port) = state.port() {
+            return BrowserServerStatus {
+                running: true,
+                port: Some(port),
+                url: Some(local_url(port)),
+            };
+        }
+    }
+    let settings = crate::settings::get_settings(&app);
+    BrowserServerStatus {
+        running: false,
+        port: Some(settings.server_port),
+        url: Some(local_url(settings.server_port)),
+    }
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn start_browser_server(app: AppHandle) -> Result<BrowserServerStatus, String> {
+    {
+        let mut s = crate::settings::get_settings(&app);
+        if !s.server_mode_enabled {
+            s.server_mode_enabled = true;
+            if s.server_auth_token.is_none() {
+                s.server_auth_token = Some(crate::settings::generate_server_auth_token());
+            }
+            crate::settings::write_settings(&app, s);
+        }
+    }
+    let port = start_server(app.clone()).await?;
+    Ok(BrowserServerStatus {
+        running: true,
+        port: Some(port),
+        url: Some(local_url(port)),
+    })
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn stop_browser_server(app: AppHandle) -> Result<BrowserServerStatus, String> {
+    {
+        let mut s = crate::settings::get_settings(&app);
+        if s.server_mode_enabled {
+            s.server_mode_enabled = false;
+            crate::settings::write_settings(&app, s);
+        }
+    }
+    stop_server(&app);
+    crate::tray::update_tray_menu(&app, None);
+    let settings = crate::settings::get_settings(&app);
+    Ok(BrowserServerStatus {
+        running: false,
+        port: Some(settings.server_port),
+        url: Some(local_url(settings.server_port)),
+    })
 }
 
 #[cfg(test)]

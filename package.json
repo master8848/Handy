@@ -16,6 +16,8 @@
     "format:backend": "cd src-tauri && cargo fmt",
     "test:playwright": "playwright test",
     "test:playwright:ui": "playwright test --ui",
+    "screenshots:capture": "node scripts/capture-screenshots.mjs",
+    "screenshots": "bun run screenshots:capture",
     "check:translations": "bun scripts/check-translations.ts",
     "postinstall": "bun scripts/check-nix-deps.ts"
   },
