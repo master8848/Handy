@@ -464,7 +464,7 @@ export const PromptWorkbench: React.FC = () => {
         onMouseUp={handleEditorMouseUp}
         className="rounded-xl bg-background border border-mid-gray/20 overflow-hidden flex flex-col shadow-sm"
       >
-        <div className="flex items-center justify-between px-2 py-1 border-b border-mid-gray/10 bg-mid-gray/[0.04]">
+        <div className="flex items-center justify-between border-b border-mid-gray/10 bg-mid-gray/[0.04]">
           <PromptFormatToolbar editor={editor} />
           <label className="hidden sm:flex items-center gap-1.5 text-xs text-text/50 cursor-pointer select-none shrink-0 ml-2">
             <input type="checkbox" className="sr-only peer" checked={spellEnabled} onChange={(e) => updateSetting("spell_check_enabled", e.target.checked)} />
@@ -518,7 +518,7 @@ export const PromptWorkbench: React.FC = () => {
             <Button variant="ghost" size="sm" onClick={handleCancel}>{t("home.cancel")}</Button>
           </span>
         )}
-        <div className="flex-1 min-w-2" />
+        <div className="flex-1 min-w-0" />
         <Button variant="secondary" size="sm" onClick={handleCopy} disabled={!docText}>
           <Clipboard className="w-3.5 h-3.5" /> {t("promptStudio.copy")}
         </Button>

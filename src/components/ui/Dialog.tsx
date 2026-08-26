@@ -199,7 +199,7 @@ export const Dialog: React.FC<DialogProps> = ({
           {children}
         </div>
         {footer && (
-          <div className="flex shrink-0 justify-end gap-2 border-t border-mid-gray/20 px-4 py-3">
+          <div className="flex shrink-0 items-center justify-end gap-2 border-t border-mid-gray/20 px-4 py-3">
             {footer}
           </div>
         )}

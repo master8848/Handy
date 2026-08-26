@@ -73,7 +73,7 @@ const ScreenshotCard: React.FC<{
 
   return (
     <div className="rounded-xl border border-mid-gray/20 bg-mid-gray/5 overflow-hidden flex flex-col">
-      <div className="relative bg-white dark:bg-zinc-900 min-h-[180px] flex items-center justify-center overflow-hidden border-b border-mid-gray/10">
+      <div className="relative bg-background min-h-[180px] flex items-center justify-center overflow-hidden border-b border-mid-gray/10">
         {missing ? (
           <div className="flex flex-col items-center gap-2 py-12 px-4 text-center">
             <ImageOff className="w-8 h-8 text-text/30" />
@@ -226,7 +226,7 @@ export const ScreenshotsPage: React.FC = () => {
 
       <div className="rounded-lg border border-mid-gray/20 bg-mid-gray/5 p-3">
         <p className="text-xs font-medium mb-1">{t("screenshots.markdownPreview")}</p>
-        <pre className="text-xs font-mono whitespace-pre-wrap break-words bg-white dark:bg-zinc-900 rounded-md p-3 border border-mid-gray/10 max-h-[220px] overflow-auto">
+        <pre className="text-xs font-mono whitespace-pre-wrap break-words bg-background rounded-md p-3 border border-mid-gray/10 max-h-[220px] overflow-auto">
           {markdownTable}
         </pre>
       </div>

@@ -212,7 +212,7 @@ export const QuickPromptBox: React.FC = () => {
         )}
 
         {/* Footer actions */}
-        <div className="flex items-center justify-between gap-2 px-3 py-2.5 border-t border-mid-gray/10 bg-mid-gray/[0.02]">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 border-t border-mid-gray/10 bg-mid-gray/[0.02]">
           <div className="flex items-center gap-1.5 text-[11px] text-text/40">
             <kbd className="px-1.5 py-0.5 rounded border border-mid-gray/20 bg-background text-[11px] font-medium">{metaLabel}↵</kbd>
             <span>paste</span>
@@ -225,14 +225,14 @@ export const QuickPromptBox: React.FC = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={close}
-              className="px-3 py-1.5 rounded-full text-xs font-medium border border-mid-gray/20 bg-background hover:bg-mid-gray/10 transition-colors"
+              className="inline-flex items-center justify-center px-4 py-1.5 rounded-full text-xs font-medium border border-mid-gray/20 bg-background hover:bg-mid-gray/10 transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={() => paste()}
               disabled={!canPaste}
-              className="px-4 py-1.5 rounded-full text-xs font-semibold bg-logo-primary text-white hover:brightness-105 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="inline-flex items-center justify-center px-4 py-1.5 rounded-full text-xs font-semibold border border-transparent bg-logo-primary text-white hover:brightness-105 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               {pasting ? "Pasting…" : `Paste ${metaLabel}↵`}
             </button>
