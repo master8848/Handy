@@ -995,6 +995,21 @@ pub fn get_default_settings() -> AppSettings {
             current_binding: prompt_palette_default.to_string(),
         },
     );
+    #[cfg(target_os = "macos")]
+    let quick_prompt_default = "command+shift+j";
+    #[cfg(not(target_os = "macos"))]
+    let quick_prompt_default = "ctrl+shift+j";
+    bindings.insert(
+        "quick_prompt".to_string(),
+        ShortcutBinding {
+            id: "quick_prompt".to_string(),
+            name: "Quick Prompt".to_string(),
+            description: "Open the quick prompt box (Raycast/Spotlight style) to write a snippet and paste it with Cmd+Enter."
+                .to_string(),
+            default_binding: quick_prompt_default.to_string(),
+            current_binding: quick_prompt_default.to_string(),
+        },
+    );
 
     AppSettings {
         settings_schema_version: default_settings_schema_version(),

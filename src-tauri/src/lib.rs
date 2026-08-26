@@ -19,6 +19,7 @@ mod overlay;
 mod paste_tx;
 pub mod portable;
 mod prompt_cli;
+mod quick_prompt;
 mod secure_input;
 mod server;
 mod settings;
@@ -404,6 +405,8 @@ fn initialize_core_logic(app_handle: &AppHandle) {
 
     // Create the recording overlay window (hidden by default)
     utils::create_recording_overlay(app_handle);
+    // Create the quick prompt spotlight window (hidden by default)
+    quick_prompt::create_quick_prompt_window(app_handle);
 }
 
 #[tauri::command]
@@ -886,6 +889,9 @@ pub fn run(cli_args: CliArgs) {
             commands::dictation::start_dictation,
             commands::dictation::stop_dictation,
             commands::dictation::cancel_dictation,
+            quick_prompt::quick_prompt_paste,
+            quick_prompt::hide_quick_prompt_command,
+            quick_prompt::show_quick_prompt_command,
             helpers::clamshell::is_laptop,
         ])
         .events(collect_events![
@@ -1197,6 +1203,18 @@ pub fn run(cli_args: CliArgs) {
         })
         .on_window_event(|window, event| match event {
             tauri::WindowEvent::CloseRequested { api, .. } => {
+                // Quick prompt is a transient spotlight window — hide instead of destroying
+                if window.label() == "quick_prompt" {
+                    api.prevent_close();
+                    let _ = window.hide();
+                    #[cfg(target_os = "macos")]
+                    {
+                        let _ = window
+                            .app_handle()
+                            .set_activation_policy(tauri::ActivationPolicy::Accessory);
+                    }
+                    return;
+                }
                 api.prevent_close();
                 let _res = window.hide();
 

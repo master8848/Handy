@@ -51,6 +51,14 @@ pub fn handle_shortcut_event(
         return;
     }
 
+    // Quick prompt box: Spotlight/Raycast-style snippet box
+    if binding_id == "quick_prompt" {
+        if is_pressed {
+            crate::quick_prompt::toggle_quick_prompt(app);
+        }
+        return;
+    }
+
     // Transcribe bindings are handled by the coordinator.
     if is_transcribe_binding(binding_id) {
         if let Some(coordinator) = app.try_state::<TranscriptionCoordinator>() {

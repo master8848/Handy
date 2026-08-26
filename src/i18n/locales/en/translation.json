@@ -248,6 +248,14 @@
           "transcribe_with_post_process": {
             "name": "Post-Processing Hotkey",
             "description": "Optional: A dedicated hotkey that always applies AI post-processing to your transcription."
+          },
+          "quick_prompt": {
+            "name": "Quick Prompt",
+            "description": "Open the quick prompt box (Spotlight/Raycast style) to write a snippet and paste with ⌘↵."
+          },
+          "prompt_palette": {
+            "name": "Prompt Palette",
+            "description": "Open the prompt library palette to search and insert prompts."
           }
         },
         "errors": {
@@ -997,6 +1005,10 @@
     "variables": "Variables",
     "spellCheck": "Spell check",
     "sidebarHint": "Library & pasted prompts live in the sidebar. Use handy prompt search / handy skill use in your terminal."
+  },
+  "quickPrompt": {
+    "placeholder": "Write a prompt or snippet…  (Enter for new line, {{meta}}+Enter to paste)",
+    "title": "Quick Prompt"
   },
   "transcribe": {
     "dropTitle": "Drop an audio file to transcribe",

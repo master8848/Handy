@@ -114,7 +114,8 @@ const TAURI_MOCK_SCRIPT = `
       transcribe: { id: "transcribe", name: "Transcribe", description: "", default_binding: "option+space", current_binding: "option+space" },
       transcribe_with_post_process: { id: "transcribe_with_post_process", name: "Transcribe with Post-Processing", description: "", default_binding: "option+shift+space", current_binding: "option+shift+space" },
       cancel: { id: "cancel", name: "Cancel", description: "", default_binding: "escape", current_binding: "escape" },
-      prompt_palette: { id: "prompt_palette", name: "Prompt Palette", description: "", default_binding: "option+shift+p", current_binding: "option+shift+p" }
+      prompt_palette: { id: "prompt_palette", name: "Prompt Palette", description: "", default_binding: "option+shift+p", current_binding: "option+shift+p" },
+      quick_prompt: { id: "quick_prompt", name: "Quick Prompt", description: "Open the quick prompt box (Raycast/Spotlight style) to write a snippet and paste it with Cmd+Enter.", default_binding: "command+shift+j", current_binding: "command+shift+j" }
     },
     push_to_talk: true,
     audio_feedback: false,

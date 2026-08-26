@@ -30,6 +30,7 @@ import { HistoryTimeline } from "./components/history/HistoryTimeline";
 import { MainSidebar, type MainNavId } from "./components/layout/MainSidebar";
 import { Home } from "./components/settings";
 import { ScreenshotsPage } from "./components/screenshots/ScreenshotsPage";
+import { QuickPromptBox } from "./components/quick-prompt/QuickPromptBox";
 import { useSettings } from "./hooks/useSettings";
 import { useSettingsStore } from "./stores/settingsStore";
 import { commands } from "@/bindings";
@@ -50,6 +51,11 @@ const getWindowView = (): WindowView | null => {
 const isScreenshotsView = (): boolean => {
   const params = new URLSearchParams(window.location.search);
   return params.get("view") === "screenshots" || params.get("screenshots") === "1";
+};
+
+const isQuickPromptView = (): boolean => {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("view") === "quick-prompt";
 };
 
 const renderSettingsContent = (
@@ -401,6 +407,7 @@ function App() {
   };
 
   const [screenshotsView] = useState<boolean>(() => isScreenshotsView());
+  const [quickPromptView] = useState<boolean>(() => isQuickPromptView());
 
   // Rendered once around every step below (including onboarding) so
   // toast.error() calls surface to the user. sonner renders via a portal, so
@@ -434,6 +441,18 @@ function App() {
       <>
         {toaster}
         <ScreenshotsPage />
+      </>
+    );
+  }
+
+  // Quick Prompt spotlight window — lightweight, no onboarding, no sidebar.
+  // Rendered as its own WebviewWindow (`/?view=quick-prompt`) created by
+  // quick_prompt::create_quick_prompt_window. Keeps JS bundle minimal.
+  if (quickPromptView) {
+    return (
+      <>
+        {toaster}
+        <QuickPromptBox />
       </>
     );
   }
